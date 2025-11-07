@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # third party
     'rest_framework',
     'corsheaders',
+    'django_filters',
 
     # Local apps
     'products',
@@ -50,6 +51,22 @@ INSTALLED_APPS = [
     'reviews',
     'chat',
 
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 12,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+}
+
+# CORS ayarları (Frontend için)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 MIDDLEWARE = [
