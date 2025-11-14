@@ -67,7 +67,7 @@ class ProductDetailView(generics.RetrieveAPIView):
     """Tek bir ürünün detayı"""
     queryset = Product.objects.filter(is_active=True).select_related('category')
     serializer_class = ProductDetailSerializer
-    lookup_field = 'id'
+    lookup_field = 'pk'
 
 
 class CategoryListView(generics.ListAPIView):
