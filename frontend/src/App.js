@@ -92,7 +92,7 @@ function App() {
           }
         />
         <Route
-          path="/auth/register"
+          path="/register"
           element={
             <PublicRoute>
               <Register />
@@ -110,7 +110,7 @@ function App() {
 
         {/* Existing Product Routes */}
         <Route path="/" element={<ProductListPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/products/register" element={<RegisterPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
 
         {/* Catch all - 404 redirect */}
