@@ -1,0 +1,75 @@
+from django.db import models
+from django.conf import settings
+from products.models import Product
+from decimal import Decimal
+
+
+class Order(models.Model):
+    ORDER_STATUS = (
+        ('processing', 'Processing'),
+        ('in_transit', 'In Transit'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+        ('refund_requested', 'Refund Requested'),
+        ('refunded', 'Refunded'),
+    )
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
+    status = models.CharField(max_length=20, choices=ORDER_STATUS, default='processing')
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_address = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    payment_confirmed = models.BooleanField(default=False)
+    invoice_number = models.CharField(max_length=100, unique=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.user.username}"
+
+    @property
+    def can_be_cancelled(self):
+        """Sipariş iptal edilebilir mi?"""
+        return self.status == 'processing'
+
+    @property
+    def can_be_refunded(self):
+        """İade edilebilir mi?"""
+        return self.status == 'delivered'
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Satın alma anındaki fiyat
+
+    def __str__(self):
+        return f"{self.quantity}x {self.product.name}"
+
+    @property
+    def subtotal(self):
+        return self.quantity * self.price
+
+
+class Refund(models.Model):
+    REFUND_STATUS = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refunds')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=REFUND_STATUS, default='pending')
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                     related_name='processed_refunds')
+
+    def __str__(self):
+        return f"Refund for Order #{self.order.id}"
