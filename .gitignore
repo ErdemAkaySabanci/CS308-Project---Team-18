@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Django stuff
+db.sqlite3
+media/
+
+# Migrations (except __init__.py)
+*/migrations/*
+!*/migrations/__init__.py
+
+# Environment
+.env
+venv/
+
+# IDE
+.idea/
+.vscode/
