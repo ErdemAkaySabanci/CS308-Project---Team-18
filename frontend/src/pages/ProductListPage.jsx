@@ -93,8 +93,7 @@ function ProductListPage() {
               <h3 style={styles.cardTitle}>{p.name}</h3>
 
               <p style={styles.price}>
-                {p.price}
-                <span style={styles.priceCurrency}> TL</span>
+                Price: <span style={styles.priceValue}>{p.price} TL</span>
               </p>
 
               {p.description && (
@@ -124,9 +123,10 @@ const styles = {
     maxWidth: "1100px",
     margin: "0 auto",
     fontFamily:
-      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    backgroundColor: "#F9FAFB",
+      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    backgroundColor: "#F5F7FA", // Global background
     minHeight: "100vh",
+    color: "#1A1A1A",
   },
   header: {
     display: "flex",
@@ -139,13 +139,13 @@ const styles = {
     margin: 0,
     fontSize: "28px",
     fontWeight: 700,
-    color: "#111827",
+    color: "#1A1A1A",
   },
   subtitle: {
     marginTop: "8px",
     marginBottom: 0,
     fontSize: "14px",
-    color: "#6B7280",
+    color: "#4B5563",
   },
   grid: {
     display: "grid",
@@ -168,26 +168,26 @@ const styles = {
     margin: 0,
     fontSize: "18px",
     fontWeight: 600,
-    color: "#111827",
+    color: "#1A1A1A",
   },
   description: {
     marginTop: "8px",
     marginBottom: 0,
     fontSize: "14px",
-    color: "#6B7280",
+    color: "#4B5563",
     lineHeight: 1.4,
   },
   price: {
     marginTop: "10px",
     marginBottom: 0,
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#1A1A1A",
+  },
+  priceValue: {
     fontSize: "18px",
     fontWeight: 700,
-    color: "#111827",
-  },
-  priceCurrency: {
-    fontSize: "13px",
-    fontWeight: 500,
-    color: "#6B7280",
+    color: "#FF7A00", // Secondary – orange
     marginLeft: "4px",
   },
   cardFooter: {
@@ -201,7 +201,7 @@ const styles = {
     padding: "8px 16px",
     borderRadius: "999px",
     border: "none",
-    backgroundColor: "#2563EB",
+    backgroundColor: "#2D5FFF", // Primary blue
     color: "#FFFFFF",
     fontSize: "14px",
     fontWeight: 600,
@@ -209,13 +209,13 @@ const styles = {
     cursor: "pointer",
   },
   secondaryButton: {
-    padding: "6px 12px",
+    padding: "6px 14px",
     borderRadius: "999px",
-    border: "1px solid #D1D5DB",
+    border: "1px solid #FF7A00", // Secondary orange border
     backgroundColor: "#FFFFFF",
-    color: "#111827",
+    color: "#FF7A00",
     fontSize: "13px",
-    fontWeight: 500,
+    fontWeight: 600,
     textDecoration: "none",
     cursor: "pointer",
   },
@@ -228,7 +228,9 @@ const styles = {
     boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
     textAlign: "center",
     fontSize: "15px",
-    color: "#111827",
+    color: "#1A1A1A",
+    fontFamily:
+      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   errorBox: {
     border: "1px solid #FCA5A5",
@@ -245,7 +247,7 @@ const styles = {
   emptyText: {
     margin: 0,
     fontSize: "14px",
-    color: "#6B7280",
+    color: "#4B5563",
   },
 };
 

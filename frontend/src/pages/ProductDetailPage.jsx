@@ -1,3 +1,4 @@
+// ProductDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 
@@ -22,7 +23,7 @@ function ProductDetailPage() {
         setProduct(data);
       } catch (err) {
         console.error("Error fetching product", err);
-        setError("An error occurred while loading the product or it was not found.");
+        setError("An error occurred while loading the product.");
       } finally {
         setLoading(false);
       }
@@ -33,134 +34,171 @@ function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div style={detailStyles.pageWrapper}>
-        <div style={detailStyles.centerBox}>Loading...</div>
+      <div style={styles.pageWrapper}>
+        <div style={styles.centerBox}>Loading...</div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !product) {
     return (
-      <div style={detailStyles.pageWrapper}>
-        <div style={{ ...detailStyles.centerBox, ...detailStyles.errorBox }}>
-          {error}
+      <div style={styles.pageWrapper}>
+        <div style={{ ...styles.centerBox, ...styles.errorBox }}>
+          {error || "Product not found."}
+        </div>
+        <div style={{ marginTop: 16, textAlign: "center" }}>
+          <Link to="/" style={styles.linkBack}>
+            ← Back to Products
+          </Link>
         </div>
       </div>
     );
   }
 
-  if (!product) {
-    return (
-      <div style={detailStyles.pageWrapper}>
-        <div style={detailStyles.centerBox}>Product not found.</div>
-      </div>
-    );
-  }
+  // Dummy / fallback image (eğer backend image göndermiyorsa)
+  const imageUrl =
+    product.image ||
+    product.image_url ||
+    "https://via.placeholder.com/800x500?text=Product+Image";
 
   return (
-    <div style={detailStyles.pageWrapper}>
-      <div style={detailStyles.header}>
-        <Link to="/products" style={detailStyles.backLink}>
+    <div style={styles.pageWrapper}>
+      <div style={styles.topBar}>
+        <Link to="/" style={styles.linkBack}>
           ← Back to Products
         </Link>
       </div>
 
-      <div style={detailStyles.card}>
-        <h1 style={detailStyles.title}>{product.name}</h1>
+      <div style={styles.detailCard}>
+        {/* Büyük ürün görseli */}
+        <div style={styles.imageWrapper}>
+          <img src={imageUrl} alt={product.name} style={styles.image} />
+        </div>
 
-        {product.description && (
-          <p style={detailStyles.description}>{product.description}</p>
-        )}
+        {/* Ürün bilgisi */}
+        <div style={styles.infoWrapper}>
+          <h1 style={styles.productName}>{product.name}</h1>
 
-        <p style={detailStyles.price}>
-          {product.price}
-          <span style={detailStyles.priceCurrency}> TL</span>
-        </p>
+          {product.short_description || product.description ? (
+            <p style={styles.description}>
+              {(product.short_description || product.description).length > 140
+                ? (product.short_description || product.description).slice(0, 140) + "..."
+                : product.short_description || product.description}
+            </p>
+          ) : (
+            <p style={styles.description}>
+              This product currently does not have a description.
+            </p>
+          )}
 
-        {/* Placeholder actions for later (e.g., Add to Cart) */}
-        <div style={detailStyles.actions}>
-          <button type="button" style={detailStyles.primaryButton}>
-            Add to Cart
-          </button>
+          <p style={styles.priceLabel}>
+            Price:
+            <span style={styles.priceValue}>
+              {" "}
+              {product.price} TL
+            </span>
+          </p>
+
+          <button style={styles.primaryButton}>Add to Cart</button>
         </div>
       </div>
     </div>
   );
 }
 
-const detailStyles = {
+const styles = {
   pageWrapper: {
-    padding: "32px 24px",
-    maxWidth: "800px",
-    margin: "0 auto",
-    fontFamily:
-      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    backgroundColor: "#F9FAFB",
     minHeight: "100vh",
+    backgroundColor: "#F5F7FA", // Global background
+    padding: "24px 16px 40px",
+    fontFamily:
+      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    color: "#1A1A1A",
   },
-  header: {
-    marginBottom: "16px",
+  topBar: {
+    maxWidth: "960px",
+    margin: "0 auto 16px",
   },
-  backLink: {
+  linkBack: {
     fontSize: "14px",
-    color: "#2563EB",
     textDecoration: "none",
+    color: "#2D5FFF",
+    fontWeight: 500,
   },
-  card: {
+  detailCard: {
+    maxWidth: "960px",
+    margin: "0 auto",
     backgroundColor: "#FFFFFF",
-    borderRadius: "16px",
-    padding: "24px 24px 20px",
-    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.12)",
+    borderRadius: "18px",
+    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column", // mobilde tek kolon
+    gap: "20px",
   },
-  title: {
+  imageWrapper: {
+    width: "100%",
+    borderRadius: "16px",
+    overflow: "hidden",
+    backgroundColor: "#E5E7EB",
+  },
+  image: {
+    width: "100%",
+    height: "280px",
+    objectFit: "cover",
+    display: "block",
+  },
+  infoWrapper: {
+    width: "100%",
+  },
+  productName: {
     margin: 0,
-    fontSize: "26px",
+    fontSize: "24px",
     fontWeight: 700,
-    color: "#111827",
+    color: "#1A1A1A",
   },
   description: {
-    marginTop: "12px",
-    fontSize: "15px",
+    marginTop: "10px",
+    marginBottom: "16px",
+    fontSize: "14px",
     lineHeight: 1.5,
     color: "#4B5563",
   },
-  price: {
-    marginTop: "18px",
-    fontSize: "22px",
+  priceLabel: {
+    margin: 0,
+    fontSize: "16px",
+    fontWeight: 600,
+    color: "#1A1A1A",
+  },
+  priceValue: {
+    color: "#FF7A00", // secondary (turuncu)
+    fontSize: "20px",
     fontWeight: 700,
-    color: "#111827",
-  },
-  priceCurrency: {
-    fontSize: "14px",
-    fontWeight: 500,
-    color: "#6B7280",
-    marginLeft: "4px",
-  },
-  actions: {
-    marginTop: "20px",
-    display: "flex",
-    gap: "12px",
+    marginLeft: "6px",
   },
   primaryButton: {
-    padding: "10px 18px",
+    marginTop: "18px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 22px",
     borderRadius: "999px",
     border: "none",
-    backgroundColor: "#10B981",
+    backgroundColor: "#2D5FFF", // primary (mavi)
     color: "#FFFFFF",
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: 600,
     cursor: "pointer",
   },
   centerBox: {
-    maxWidth: "400px",
+    maxWidth: "420px",
     margin: "120px auto 0",
-    padding: "16px 20px",
+    padding: "18px 22px",
     borderRadius: "12px",
     backgroundColor: "#FFFFFF",
     boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
     textAlign: "center",
     fontSize: "15px",
-    color: "#111827",
   },
   errorBox: {
     border: "1px solid #FCA5A5",
