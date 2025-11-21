@@ -6,165 +6,184 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("Giriş başarılı!");
+    // API integration will be added later
+    alert("Login successful!");
   };
 
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "linear-gradient(to bottom, #007bff 50%, #ffb400 50%)",
-        position: "relative",
-        overflow: "hidden",
+        background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
+        fontFamily: "'Inter', sans-serif",
+        padding: "20px",
       }}
     >
-      {/* Basketbol topu - sağ üst */}
+      {/* Login Card */}
       <div
         style={{
-          position: "absolute",
-          top: "10%",
-          right: "12%",
-          width: "120px",
-          height: "120px",
-          opacity: "0.9",
-          fontSize: "120px",
+          backgroundColor: "#FFFFFF",
+          padding: "48px 40px",
+          borderRadius: "16px",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+          width: "100%",
+          maxWidth: "420px",
         }}
       >
-        🏀
-      </div>
-
-      {/* Voleybol topu - sol üst */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10%",
-          left: "10%",
-          width: "120px",
-          height: "120px",
-          opacity: "0.9",
-          fontSize: "120px",
-        }}
-      >
-        🏐
-      </div>
-
-      {/* Futbol topu - sol alt */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10%",
-          left: "8%",
-          width: "130px",
-          height: "130px",
-          opacity: "0.9",
-          fontSize: "130px",
-        }}
-      >
-        ⚽
-      </div>
-
-      {/* Tenis topu - sağ alt */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10%",
-          right: "10%",
-          width: "110px",
-          height: "110px",
-          opacity: "0.9",
-          fontSize: "110px",
-        }}
-      >
-        🎾
-      </div>
-
-      {/* Login kutusu */}
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "50px",
-          borderRadius: "20px",
-          boxShadow: "0 0 30px rgba(0,0,0,0.2)",
-          width: "350px",
-          zIndex: 2,
-        }}
-      >
+        {/* Title */}
         <h2
           style={{
             textAlign: "center",
-            color: "#333",
-            marginBottom: "25px",
+            color: "#1A1A1A",
+            marginBottom: "32px",
             fontWeight: "700",
+            fontSize: "28px",
+            letterSpacing: "-0.5px",
           }}
         >
-          Giriş Yap
+          Login
         </h2>
 
-        <label style={{ display: "block", marginTop: "10px" }}>Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "5px",
-            borderRadius: "10px",
-            border: "1px solid #ccc",
-            fontSize: "15px",
-            boxSizing: "border-box",
-          }}
-        />
+        <form onSubmit={handleSubmit}>
+          {/* Email Input */}
+          <div style={{ marginBottom: "20px" }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                color: "#1A1A1A",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Enter your email"
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                border: "1px solid #E0E0E0",
+                fontSize: "15px",
+                boxSizing: "border-box",
+                fontFamily: "'Inter', sans-serif",
+                transition: "all 0.3s ease",
+                outline: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#2D5FFF";
+                e.target.style.boxShadow = "0 0 0 3px rgba(45, 95, 255, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#E0E0E0";
+                e.target.style.boxShadow = "none";
+              }}
+            />
+          </div>
 
-        <label style={{ display: "block", marginTop: "15px" }}>Şifre</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "5px",
-            borderRadius: "10px",
-            border: "1px solid #ccc",
-            fontSize: "15px",
-            boxSizing: "border-box",
-          }}
-        />
+          {/* Password Input */}
+          <div style={{ marginBottom: "28px" }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                color: "#1A1A1A",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Enter your password"
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                border: "1px solid #E0E0E0",
+                fontSize: "15px",
+                boxSizing: "border-box",
+                fontFamily: "'Inter', sans-serif",
+                transition: "all 0.3s ease",
+                outline: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#2D5FFF";
+                e.target.style.boxShadow = "0 0 0 3px rgba(45, 95, 255, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#E0E0E0";
+                e.target.style.boxShadow = "none";
+              }}
+            />
+          </div>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
+          {/* Login Button */}
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#2D5FFF",
+              border: "none",
+              borderRadius: "8px",
+              color: "#FFFFFF",
+              fontWeight: "600",
+              fontSize: "16px",
+              cursor: "pointer",
+              fontFamily: "'Inter', sans-serif",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 12px rgba(45, 95, 255, 0.3)",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = "#1E4FE0";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 16px rgba(45, 95, 255, 0.4)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = "#2D5FFF";
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 12px rgba(45, 95, 255, 0.3)";
+            }}
+          >
+            Login
+          </button>
+        </form>
+
+        {/* Register Link */}
+        <p
           style={{
-            width: "100%",
-            padding: "14px",
-            marginTop: "25px",
-            backgroundColor: "#007bff",
-            border: "none",
-            borderRadius: "10px",
-            color: "white",
-            fontWeight: "bold",
-            cursor: "pointer",
-            fontSize: "16px",
-            transition: "0.3s",
+            textAlign: "center",
+            marginTop: "24px",
+            color: "#666666",
+            fontSize: "14px",
           }}
-          onMouseOver={(e) => (e.target.style.backgroundColor = "#0056b3")}
-          onMouseOut={(e) => (e.target.style.backgroundColor = "#007bff")}
         >
-          Giriş Yap
-        </button>
-
-        <p style={{ textAlign: "center", marginTop: "12px" }}>
+          Don't have an account?{" "}
           <a
             href="/register"
-            style={{ color: "#007bff", textDecoration: "none" }}
+            style={{
+              color: "#2D5FFF",
+              textDecoration: "none",
+              fontWeight: "600",
+              transition: "color 0.3s ease",
+            }}
+            onMouseOver={(e) => (e.target.style.color = "#FF7A00")}
+            onMouseOut={(e) => (e.target.style.color = "#2D5FFF")}
           >
-            Hesabın yok mu? Kayıt ol
+            Register
           </a>
         </p>
       </div>
