@@ -109,11 +109,16 @@ function ProductDetailPage() {
 const styles = {
   pageWrapper: {
     minHeight: "100vh",
-    backgroundColor: "#F5F7FA", // Global background
     padding: "24px 16px 40px",
     fontFamily:
       "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     color: "#1A1A1A",
+  
+    /* Yeni gradient arka plan */
+    background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
+  
+    /* Gradient yumuşak görünmesi için */
+    backgroundAttachment: "fixed",
   },
   topBar: {
     maxWidth: "960px",
@@ -122,7 +127,7 @@ const styles = {
   linkBack: {
     fontSize: "14px",
     textDecoration: "none",
-    color: "#2D5FFF",
+    color: "#1A1A1A",
     fontWeight: 500,
   },
   detailCard: {
