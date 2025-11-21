@@ -119,14 +119,17 @@ function ProductListPage() {
 
 const styles = {
   pageWrapper: {
-    padding: "32px 24px",
-    maxWidth: "1100px",
-    margin: "0 auto",
+    minHeight: "100vh",
+    padding: "24px 16px 40px",
     fontFamily:
       "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    backgroundColor: "#F5F7FA", // Global background
-    minHeight: "100vh",
     color: "#1A1A1A",
+  
+    /* Yeni gradient arka plan */
+    background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
+  
+    /* Gradient yumuşak görünmesi için */
+    backgroundAttachment: "fixed",
   },
   header: {
     display: "flex",
