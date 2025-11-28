@@ -12,6 +12,8 @@ import { authService } from './services/authService';
 import ProductListPage from "./pages/ProductListPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import CategoryListPage from "./pages/CategoryListPage";
+import CartPage from "./pages/CartPage";
 
 /**
  * ProtectedRoute Component
@@ -111,6 +113,8 @@ function App() {
         {/* Existing Product Routes */}
         <Route path="/" element={<ProductListPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/categories" element={<CategoryListPage />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
 
         {/* Catch all - 404 redirect */}
