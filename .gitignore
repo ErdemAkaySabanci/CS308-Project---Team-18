@@ -1,22 +1,55 @@
-# macOS
+# -----------------------------
+# FRONTEND (React)
+# -----------------------------
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
 .DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Python cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------
+# BACKEND (Django)
+# -----------------------------
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
 
-# Django stuff
+# Django database
 db.sqlite3
+
+# Claude
+.claude/
+
+# Django media & static (if generated)
 media/
+staticfiles/
 
-# Migrations (except __init__.py)
-*/migrations/*
-!*/migrations/__init__.py
-
-# Environment
-.env
+# Virtual environment
 venv/
+env/
+.venv/
 
-# IDE
+# Editor
+*.log
 .idea/
 .vscode/
+
+# OS
+Thumbs.db
