@@ -6,13 +6,36 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // API integration will be added later
-    alert('Login successful!');
-    // navigate('/dashboard'); // Uncomment when ready
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/users/login/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // Store tokens in localStorage
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      alert('Login successful!');
+      navigate('/');  // Redirect to home page
+    } else {
+      // Show error message from backend
+      alert(data.error || 'Login failed');
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+  }
+};
   return (
     <div
       style={{
