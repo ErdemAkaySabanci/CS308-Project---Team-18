@@ -1,13 +1,11 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-
 // JWT Authentication components
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import { authService } from './services/authService';
-
 // Existing product pages
 import ProductListPage from "./pages/ProductListPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -22,11 +20,9 @@ import Navbar from "./components/Navbar";
  */
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = authService.isAuthenticated();
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 };
 
@@ -36,11 +32,9 @@ const ProtectedRoute = ({ children }) => {
  */
 const PublicRoute = ({ children }) => {
   const isAuthenticated = authService.isAuthenticated();
-
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
-
   return children;
 };
 
@@ -49,7 +43,7 @@ const PublicRoute = ({ children }) => {
  */
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -64,7 +58,6 @@ function App() {
         setIsLoading(false);
       }
     };
-
     checkAuth();
   }, []);
 
@@ -96,7 +89,7 @@ function App() {
           }
         />
         <Route
-          path="/auth/register"
+          path="/register"
           element={
             <PublicRoute>
               <Register />
@@ -111,14 +104,12 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         {/* Existing Product Routes */}
         <Route path="/" element={<ProductListPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/products/register" element={<RegisterPage />} />
         <Route path="/categories" element={<CategoryListPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
-
         {/* Catch all - 404 redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
