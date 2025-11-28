@@ -14,6 +14,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CategoryListPage from "./pages/CategoryListPage";
 import CartPage from "./pages/CartPage";
+import Navbar from "./components/Navbar";
 
 /**
  * ProtectedRoute Component
@@ -83,6 +84,7 @@ function App() {
 
   return (
     <Router>
+      <Navbar />
       <Routes>
         {/* JWT Authentication Routes */}
         <Route
