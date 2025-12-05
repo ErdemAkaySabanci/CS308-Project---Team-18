@@ -153,7 +153,10 @@ const CartPage = () => {
                         <span>${cart.total_price}</span>
                     </div>
 
-                    <button style={styles.checkoutButton}>
+                    <button
+                        style={styles.checkoutButton}
+                        onClick={() => navigate('/checkout')}
+                    >
                         Proceed to Checkout
                     </button>
                 </div>

@@ -13,6 +13,8 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import CategoryListPage from "./pages/CategoryListPage";
 import CartPage from "./pages/CartPage";
 import Navbar from "./components/Navbar";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
 
 /**
  * ProtectedRoute Component
@@ -43,7 +45,7 @@ const PublicRoute = ({ children }) => {
  */
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -110,6 +112,22 @@ function App() {
         <Route path="/categories" element={<CategoryListPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <OrderHistoryPage />
+            </ProtectedRoute>
+          }
+        />
         {/* Catch all - 404 redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
