@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/', include('products.urls')),      # Existing products API
     path('api/users/', include('users.urls')),   # New JWT authentication API
     path('api/cart/', include('cart.urls')),     # Cart API
+    path('api/orders/', include('orders.urls')), # Orders API
 ]
 
 # Media files for development

@@ -1,6 +1,7 @@
 // ProductDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import AddToCartButton from "../components/AddToCartButton";
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -55,7 +56,7 @@ function ProductDetailPage() {
     );
   }
 
-  // Dummy / fallback image (eğer backend image göndermiyorsa)
+  // Fallback image
   const imageUrl =
     product.image ||
     product.image_url ||
@@ -70,20 +71,18 @@ function ProductDetailPage() {
       </div>
 
       <div style={styles.detailCard}>
-        {/* Büyük ürün görseli */}
+        {/* Large product image */}
         <div style={styles.imageWrapper}>
           <img src={imageUrl} alt={product.name} style={styles.image} />
         </div>
 
-        {/* Ürün bilgisi */}
+        {/* Product Info */}
         <div style={styles.infoWrapper}>
           <h1 style={styles.productName}>{product.name}</h1>
 
           {product.short_description || product.description ? (
             <p style={styles.description}>
-              {(product.short_description || product.description).length > 140
-                ? (product.short_description || product.description).slice(0, 140) + "..."
-                : product.short_description || product.description}
+              {product.short_description || product.description}
             </p>
           ) : (
             <p style={styles.description}>
@@ -91,15 +90,36 @@ function ProductDetailPage() {
             </p>
           )}
 
-          <p style={styles.priceLabel}>
-            Price:
-            <span style={styles.priceValue}>
-              {" "}
-              {product.price} TL
-            </span>
-          </p>
+          <div style={styles.metaRow}>
+            <p style={styles.priceLabel}>
+              Price:
+              <span style={styles.priceValue}>
+                {product.price} TL
+              </span>
+            </p>
 
-          <button style={styles.primaryButton}>Add to Cart</button>
+            <div style={styles.stockInfo}>
+              {product.quantity_in_stock > 0 ? (
+                <span style={{ color: '#10B981', fontWeight: 'bold' }}>
+                  In Stock: {product.quantity_in_stock}
+                </span>
+              ) : (
+                <span style={{ color: '#EF4444', fontWeight: 'bold' }}>
+                  Out of Stock
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div style={styles.actionArea}>
+            {product.quantity_in_stock > 0 ? (
+              <AddToCartButton productId={product.id} />
+            ) : (
+              <button disabled style={styles.outOfStockButton}>
+                Out of Stock
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -113,11 +133,7 @@ const styles = {
     fontFamily:
       "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     color: "#1A1A1A",
-  
-    /* Yeni gradient arka plan */
     background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
-  
-    /* Gradient yumuşak görünmesi için */
     backgroundAttachment: "fixed",
   },
   topBar: {
@@ -129,6 +145,9 @@ const styles = {
     textDecoration: "none",
     color: "#1A1A1A",
     fontWeight: 500,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    padding: '8px 16px',
+    borderRadius: '8px',
   },
   detailCard: {
     maxWidth: "960px",
@@ -138,7 +157,7 @@ const styles = {
     boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
     padding: "20px",
     display: "flex",
-    flexDirection: "column", // mobilde tek kolon
+    flexDirection: "column",
     gap: "20px",
   },
   imageWrapper: {
@@ -149,8 +168,9 @@ const styles = {
   },
   image: {
     width: "100%",
-    height: "280px",
-    objectFit: "cover",
+    height: "auto",
+    maxHeight: "500px",
+    objectFit: "contain",
     display: "block",
   },
   infoWrapper: {
@@ -158,42 +178,57 @@ const styles = {
   },
   productName: {
     margin: 0,
-    fontSize: "24px",
+    fontSize: "28px",
     fontWeight: 700,
     color: "#1A1A1A",
   },
   description: {
     marginTop: "10px",
-    marginBottom: "16px",
-    fontSize: "14px",
-    lineHeight: 1.5,
+    marginBottom: "24px",
+    fontSize: "16px",
+    lineHeight: 1.6,
     color: "#4B5563",
+  },
+  metaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+    gap: '16px'
   },
   priceLabel: {
     margin: 0,
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: 600,
     color: "#1A1A1A",
   },
   priceValue: {
-    color: "#FF7A00", // secondary (turuncu)
-    fontSize: "20px",
+    color: "#FF7A00",
+    fontSize: "24px",
     fontWeight: 700,
-    marginLeft: "6px",
+    marginLeft: "8px",
   },
-  primaryButton: {
-    marginTop: "18px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "10px 22px",
-    borderRadius: "999px",
-    border: "none",
-    backgroundColor: "#2D5FFF", // primary (mavi)
-    color: "#FFFFFF",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
+  stockInfo: {
+    fontSize: '16px',
+    padding: '8px 12px',
+    backgroundColor: '#F3F4F6',
+    borderRadius: '8px',
+  },
+  actionArea: {
+    marginTop: '16px',
+    maxWidth: '300px'
+  },
+  outOfStockButton: {
+    width: '100%',
+    padding: '12px 24px',
+    backgroundColor: '#E5E7EB',
+    color: '#9CA3AF',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'not-allowed',
   },
   centerBox: {
     maxWidth: "420px",
