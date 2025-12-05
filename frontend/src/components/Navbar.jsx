@@ -26,7 +26,7 @@ const Navbar = () => {
             <div style={styles.container}>
                 {/* Logo */}
                 <NavLink to="/" style={styles.logo} onClick={closeMobileMenu}>
-                    TechStore
+                    SportStore
                 </NavLink>
 
                 {/* Desktop Menu */}

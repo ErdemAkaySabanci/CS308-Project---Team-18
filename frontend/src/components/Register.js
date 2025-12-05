@@ -12,9 +12,10 @@ function Register() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  console.log('Button was clicked!'); // ADD THIS LINE
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
     try {
       const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
