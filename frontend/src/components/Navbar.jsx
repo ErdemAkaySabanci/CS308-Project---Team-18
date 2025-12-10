@@ -26,50 +26,57 @@ const Navbar = () => {
             <div style={styles.container}>
                 {/* Logo */}
                 <NavLink to="/" style={styles.logo} onClick={closeMobileMenu}>
-                    SportStore
+                    <span style={styles.logoIcon}>🏆</span>
+                    <span style={styles.logoText}>Sport</span>
+                    <span style={styles.logoTextAccent}>Store</span>
                 </NavLink>
 
                 {/* Desktop Menu */}
                 <div style={styles.desktopMenu} className="desktop-menu">
                     <NavLink
                         to="/"
-                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                        style={({ isActive }) => ({
+                            ...styles.navLink,
+                            ...(isActive ? styles.navLinkActive : {})
+                        })}
                         end
                     >
                         Home
                     </NavLink>
 
-                   
-
                     <NavLink
                         to="/cart"
-                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                        style={({ isActive }) => ({
+                            ...styles.navLink,
+                            ...(isActive ? styles.navLinkActive : {})
+                        })}
                     >
-                        Cart
+                        🛒 Cart
                     </NavLink>
 
-                    {/* ⭐️ My Orders Added */}
                     <NavLink
                         to="/orders"
-                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                        style={({ isActive }) => ({
+                            ...styles.navLink,
+                            ...(isActive ? styles.navLinkActive : {})
+                        })}
                     >
-                        My Orders
+                        📦 My Orders
                     </NavLink>
+
+                    <div style={styles.divider}></div>
 
                     {isAuthenticated ? (
                         <button onClick={handleLogout} style={styles.logoutButton}>
                             Logout
                         </button>
                     ) : (
-                        <div style={styles.authLinks}>
-                            <NavLink
-                                to="/login"
-                                style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
-                            >
-                                Login
+                        <div style={styles.authButtons}>
+                            <NavLink to="/login" style={styles.loginButton}>
+                                Sign In
                             </NavLink>
                             <NavLink to="/register" style={styles.registerButton}>
-                                Register
+                                Get Started
                             </NavLink>
                         </div>
                     )}
@@ -81,46 +88,59 @@ const Navbar = () => {
                     className="mobile-menu-button"
                     onClick={toggleMobileMenu}
                 >
-                    <span style={styles.hamburgerIcon}>☰</span>
+                    <div style={{
+                        ...styles.hamburgerLine,
+                        transform: isMobileMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
+                    }}></div>
+                    <div style={{
+                        ...styles.hamburgerLine,
+                        opacity: isMobileMenuOpen ? 0 : 1
+                    }}></div>
+                    <div style={{
+                        ...styles.hamburgerLine,
+                        transform: isMobileMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
+                    }}></div>
                 </button>
             </div>
 
-            {/* Mobile Menu Dropdown */}
+            {/* Mobile Menu */}
             {isMobileMenuOpen && (
                 <div style={styles.mobileMenu}>
                     <NavLink
                         to="/"
-                        style={({ isActive }) =>
-                            isActive ? styles.mobileActiveLink : styles.mobileLink
-                        }
+                        style={({ isActive }) => ({
+                            ...styles.mobileNavLink,
+                            ...(isActive ? styles.mobileNavLinkActive : {})
+                        })}
                         onClick={closeMobileMenu}
                         end
                     >
-                        Home
+                        🏠 Home
                     </NavLink>
-
-                   
 
                     <NavLink
                         to="/cart"
-                        style={({ isActive }) =>
-                            isActive ? styles.mobileActiveLink : styles.mobileLink
-                        }
+                        style={({ isActive }) => ({
+                            ...styles.mobileNavLink,
+                            ...(isActive ? styles.mobileNavLinkActive : {})
+                        })}
                         onClick={closeMobileMenu}
                     >
-                        Cart
+                        🛒 Cart
                     </NavLink>
 
-                    {/* ⭐️ Mobile My Orders */}
                     <NavLink
                         to="/orders"
-                        style={({ isActive }) =>
-                            isActive ? styles.mobileActiveLink : styles.mobileLink
-                        }
+                        style={({ isActive }) => ({
+                            ...styles.mobileNavLink,
+                            ...(isActive ? styles.mobileNavLinkActive : {})
+                        })}
                         onClick={closeMobileMenu}
                     >
-                        My Orders
+                        📦 My Orders
                     </NavLink>
+
+                    <div style={styles.mobileDivider}></div>
 
                     {isAuthenticated ? (
                         <button onClick={handleLogout} style={styles.mobileLogoutButton}>
@@ -130,20 +150,17 @@ const Navbar = () => {
                         <>
                             <NavLink
                                 to="/login"
-                                style={({ isActive }) =>
-                                    isActive ? styles.mobileActiveLink : styles.mobileLink
-                                }
+                                style={styles.mobileLoginButton}
                                 onClick={closeMobileMenu}
                             >
-                                Login
+                                Sign In
                             </NavLink>
-
                             <NavLink
                                 to="/register"
                                 style={styles.mobileRegisterButton}
                                 onClick={closeMobileMenu}
                             >
-                                Register
+                                Get Started
                             </NavLink>
                         </>
                     )}
@@ -156,132 +173,224 @@ const Navbar = () => {
 const styles = {
     navbar: {
         backgroundColor: '#FFFFFF',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
         position: 'sticky',
         top: 0,
         zIndex: 1000,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        borderBottom: '3px solid #F97316',
     },
     container: {
-        maxWidth: '1200px',
+        maxWidth: '1400px',
         margin: '0 auto',
-        padding: '0 20px',
+        padding: '0 24px',
         height: '70px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    
+    // Logo
     logo: {
-        fontSize: '24px',
-        fontWeight: '700',
-        color: '#2D5FFF',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
         textDecoration: 'none',
     },
+    logoIcon: {
+        fontSize: '28px',
+    },
+    logoText: {
+        fontSize: '24px',
+        fontWeight: '800',
+        color: '#1E3A8A',
+    },
+    logoTextAccent: {
+        fontSize: '24px',
+        fontWeight: '800',
+        color: '#F97316',
+    },
+
+    // Desktop Menu
     desktopMenu: {
         display: 'flex',
         alignItems: 'center',
-        gap: '32px',
+        gap: '8px',
     },
-    link: {
-        textDecoration: 'none',
-        color: '#667085',
-        fontWeight: '500',
-        fontSize: '16px',
-    },
-    activeLink: {
-        textDecoration: 'none',
-        color: '#2D5FFF',
-        fontWeight: '600',
-        fontSize: '16px',
-    },
-    authLinks: {
+    navLink: {
         display: 'flex',
         alignItems: 'center',
-        gap: '20px',
+        gap: '6px',
+        textDecoration: 'none',
+        color: '#64748B',
+        fontWeight: '600',
+        fontSize: '15px',
+        padding: '10px 18px',
+        borderRadius: '10px',
+        transition: 'all 0.2s ease',
+    },
+    navLinkActive: {
+        color: '#F97316',
+        backgroundColor: '#FFF7ED',
+    },
+    divider: {
+        width: '1px',
+        height: '24px',
+        backgroundColor: '#E2E8F0',
+        margin: '0 8px',
+    },
+
+    // Auth Buttons
+    authButtons: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+    },
+    loginButton: {
+        textDecoration: 'none',
+        color: '#475569',
+        fontWeight: '600',
+        fontSize: '15px',
+        padding: '10px 20px',
+        borderRadius: '10px',
+        transition: 'all 0.2s ease',
     },
     registerButton: {
         textDecoration: 'none',
-        backgroundColor: '#2D5FFF',
+        background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
         color: '#FFFFFF',
-        padding: '10px 20px',
-        borderRadius: '8px',
         fontWeight: '600',
+        fontSize: '15px',
+        padding: '12px 24px',
+        borderRadius: '10px',
+        boxShadow: '0 4px 14px rgba(249, 115, 22, 0.4)',
+        transition: 'all 0.2s ease',
     },
     logoutButton: {
-        backgroundColor: 'transparent',
-        border: '1px solid #D0D5DD',
-        padding: '8px 16px',
-        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        backgroundColor: '#FEF2F2',
+        border: 'none',
+        padding: '10px 20px',
+        borderRadius: '10px',
         cursor: 'pointer',
         fontWeight: '600',
-        color: '#344054',
+        fontSize: '15px',
+        color: '#DC2626',
+        transition: 'all 0.2s ease',
     },
+
+    // Mobile Menu Button
     mobileMenuButton: {
         display: 'none',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: '5px',
         background: 'none',
         border: 'none',
-        fontSize: '24px',
         cursor: 'pointer',
-        color: '#1A1A1A',
+        padding: '8px',
+        borderRadius: '8px',
     },
-    hamburgerIcon: {
-        fontSize: '24px',
+    hamburgerLine: {
+        width: '24px',
+        height: '2px',
+        backgroundColor: '#1E293B',
+        borderRadius: '2px',
+        transition: 'all 0.3s ease',
     },
+
+    // Mobile Menu
     mobileMenu: {
         position: 'absolute',
         top: '70px',
         left: 0,
         right: 0,
         backgroundColor: '#FFFFFF',
-        borderTop: '1px solid #EAECF0',
-        padding: '20px',
+        borderTop: '1px solid #F1F5F9',
+        padding: '16px 24px 24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: '8px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
     },
-    mobileLink: {
+    mobileNavLink: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
         textDecoration: 'none',
-        color: '#667085',
-        fontSize: '18px',
+        color: '#64748B',
+        fontSize: '16px',
         fontWeight: '500',
+        padding: '14px 16px',
+        borderRadius: '12px',
+        transition: 'all 0.2s ease',
     },
-    mobileActiveLink: {
-        textDecoration: 'none',
-        color: '#2D5FFF',
-        fontSize: '18px',
+    mobileNavLinkActive: {
+        color: '#F97316',
+        backgroundColor: '#FFF7ED',
         fontWeight: '600',
+    },
+    mobileDivider: {
+        height: '1px',
+        backgroundColor: '#F1F5F9',
+        margin: '8px 0',
+    },
+    mobileLoginButton: {
+        textDecoration: 'none',
+        textAlign: 'center',
+        color: '#475569',
+        fontWeight: '600',
+        fontSize: '16px',
+        padding: '14px',
+        borderRadius: '12px',
+        border: '2px solid #E2E8F0',
     },
     mobileRegisterButton: {
         textDecoration: 'none',
-        backgroundColor: '#2D5FFF',
-        color: '#FFFFFF',
-        padding: '12px',
-        borderRadius: '8px',
-        fontWeight: '600',
         textAlign: 'center',
+        background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: '16px',
+        padding: '14px',
+        borderRadius: '12px',
     },
     mobileLogoutButton: {
-        backgroundColor: '#F2F4F7',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '10px',
+        backgroundColor: '#FEF2F2',
         border: 'none',
-        padding: '12px',
-        borderRadius: '8px',
-        fontWeight: '600',
-        color: '#344054',
+        padding: '14px',
+        borderRadius: '12px',
         cursor: 'pointer',
-        textAlign: 'center',
+        fontWeight: '600',
+        fontSize: '16px',
+        color: '#DC2626',
     },
 };
 
-// Media Queries Injection
+// Media Queries
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   @media (max-width: 768px) {
     .desktop-menu { display: none !important; }
-    .mobile-menu-button { display: block !important; }
+    .mobile-menu-button { display: flex !important; }
   }
   @media (min-width: 769px) {
     .desktop-menu { display: flex !important; }
     .mobile-menu-button { display: none !important; }
+  }
+  nav a:hover {
+    background-color: #FFF7ED !important;
+    color: #F97316 !important;
+  }
+  button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 `;
 document.head.appendChild(styleSheet);

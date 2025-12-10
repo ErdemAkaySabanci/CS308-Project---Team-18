@@ -139,20 +139,36 @@ def register_view(request):
         )
 
     # ============================================
-    # 6. PASSWORD STRENGTH VALIDATION (OPTIONAL)
+    # 6. PASSWORD STRENGTH VALIDATION
     # ============================================
-    # Uncomment these if you want stronger password requirements
-    # if not any(char.isdigit() for char in password):
-    #     return Response(
-    #         {'error': 'Password must contain at least one number'},
-    #         status=status.HTTP_400_BAD_REQUEST
-    #     )
-    #
-    # if not any(char.isupper() for char in password):
-    #     return Response(
-    #         {'error': 'Password must contain at least one uppercase letter'},
-    #         status=status.HTTP_400_BAD_REQUEST
-    #     )
+    # At least one number
+    if not any(char.isdigit() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one number'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one uppercase letter
+    if not any(char.isupper() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one uppercase letter'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one lowercase letter
+    if not any(char.islower() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one lowercase letter'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one special character
+    special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    if not any(char in special_chars for char in password):
+        return Response(
+            {'error': 'Password must contain at least one special character (!@#$%^&*...)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     # ============================================
     # 7. CREATE USER
@@ -183,8 +199,6 @@ def register_view(request):
             {'error': f'Registration failed: {str(e)}'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-# users/views.py
 
 
 class CurrentUserView(APIView):
