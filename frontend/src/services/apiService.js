@@ -8,12 +8,12 @@ const getHeaders = () => {
   const token = authService.getToken();
   return token
     ? {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      }
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }
     : {
-        "Content-Type": "application/json",
-      };
+      "Content-Type": "application/json",
+    };
 };
 
 async function handleResponse(response, retryCallback) {
@@ -51,6 +51,18 @@ export const apiService = {
   },
 
   // -------------------------------
+  // Generic PUT
+  // -------------------------------
+  put: async (endpoint, data) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response, () => apiService.put(endpoint, data));
+  },
+
+  // -------------------------------
   // Products
   // -------------------------------
   getProducts: () => apiService.get(`/products/`),
@@ -68,7 +80,7 @@ export const apiService = {
     apiService.post(`/cart/`, { product_id: productId, quantity }),
 
   updateCartItem: (itemId, quantity) =>
-    apiService.post(`/cart/item/${itemId}/`, { quantity }),
+    apiService.put(`/cart/item/${itemId}/`, { quantity }),
 
   deleteCartItem: async (itemId) => {
     const response = await fetch(`${API_BASE_URL}/cart/item/${itemId}/`, {
