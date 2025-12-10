@@ -95,14 +95,21 @@ const CartPage = () => {
                     {cart.items.map((item) => (
                         <div key={item.id} style={styles.itemCard}>
                             <div style={styles.itemImageContainer}>
-                                {/* Placeholder for image if not available in item.product */}
-                                <div style={styles.imagePlaceholder}>
-                                    {item.product_name ? item.product_name.charAt(0) : 'P'}
-                                </div>
+                                {item.image ? (
+                                    <img
+                                        src={item.image}
+                                        alt={item.name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                                    />
+                                ) : (
+                                    <div style={styles.imagePlaceholder}>
+                                        {item.name ? item.name.charAt(0) : 'P'}
+                                    </div>
+                                )}
                             </div>
 
                             <div style={styles.itemDetails}>
-                                <h3 style={styles.itemName}>{item.product_name}</h3>
+                                <h3 style={styles.itemName}>{item.name}</h3>
                                 <p style={styles.itemPrice}>${item.price}</p>
                             </div>
 
