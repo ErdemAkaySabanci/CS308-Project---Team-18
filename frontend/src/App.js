@@ -15,10 +15,8 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 
+// Components
 import Navbar from "./components/Navbar";
-import CheckoutPage from "./pages/CheckoutPage";
-import OrderHistoryPage from "./pages/OrderHistoryPage";
-
 
 // Route Guards
 const ProtectedRoute = ({ children }) => {
@@ -54,7 +52,6 @@ function App() {
     <Router>
       <Navbar />
     
-
       <Routes>
         {/* AUTH */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
