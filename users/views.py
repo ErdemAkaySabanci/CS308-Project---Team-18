@@ -207,3 +207,35 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class UpdateAddressView(APIView):
+    """
+    PUT: Update user's home address
+    GET: Get user's home address
+    """
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        home_address = request.data.get('home_address')
+        
+        if not home_address or not home_address.strip():
+            return Response(
+                {'error': 'Home address is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = request.user
+        user.home_address = home_address.strip()
+        user.save()
+        
+        return Response({
+            'message': 'Address updated successfully',
+            'home_address': user.home_address
+        }, status=status.HTTP_200_OK)
+    
+    def get(self, request):
+        """Get current user's address"""
+        return Response({
+            'home_address': request.user.home_address or ''
+        }, status=status.HTTP_200_OK)

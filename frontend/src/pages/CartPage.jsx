@@ -33,10 +33,7 @@ const CartPage = () => {
     };
 
     const updateQuantity = async (itemId, newQty) => {
-        if (newQty < 1) {
-            removeItem(itemId, true);
-            return;
-        }
+        if (newQty < 1) return;
 
         try {
             const result = await apiService.updateCartItem(itemId, newQty);
@@ -52,8 +49,8 @@ const CartPage = () => {
         }
     };
 
-    const removeItem = async (itemId, skipConfirm = false) => {
-        if (!skipConfirm && !window.confirm("Remove this item?")) return;
+    const removeItem = async (itemId) => {
+        if (!window.confirm("Remove this item?")) return;
 
         try {
             const result = await apiService.deleteCartItem(itemId);
@@ -65,14 +62,8 @@ const CartPage = () => {
         }
     };
 
-    const checkout = async () => {
-        try {
-            await apiService.checkout();
-            showToast('Order Created!', 'success');
-            setTimeout(() => navigate("/orders"), 1500);
-        } catch (err) {
-            showToast('Cannot checkout. Please try again.', 'error');
-        }
+    const goToCheckout = () => {
+        navigate("/checkout");
     };
 
     if (loading) {
@@ -163,7 +154,7 @@ const CartPage = () => {
                         <strong>{cart.total_price || 0} TL</strong>
                     </div>
 
-                    <button style={styles.checkoutButton} onClick={checkout}>
+                    <button style={styles.checkoutButton} onClick={goToCheckout}>
                         Proceed to Checkout
                     </button>
                 </div>
