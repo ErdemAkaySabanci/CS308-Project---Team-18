@@ -26,11 +26,7 @@ const CartPage = () => {
     };
 
     const updateQuantity = async (itemId, newQty) => {
-        // If quantity would become 0 or less, remove the item
-        if (newQty < 1) {
-            await removeItem(itemId, true);
-            return;
-        }
+        if (newQty < 1) return;
 
         try {
             const updated = await apiService.updateCartItem(itemId, newQty);
@@ -40,8 +36,8 @@ const CartPage = () => {
         }
     };
 
-    const removeItem = async (itemId, skipConfirm = false) => {
-        if (!skipConfirm && !window.confirm("Remove this item?")) return;
+    const removeItem = async (itemId) => {
+        if (!window.confirm("Remove this item?")) return;
 
         try {
             const updated = await apiService.deleteCartItem(itemId);
@@ -51,14 +47,8 @@ const CartPage = () => {
         }
     };
 
-    const checkout = async () => {
-        try {
-            await apiService.checkout();
-            alert("Order Created!");
-            navigate("/orders");
-        } catch (err) {
-            alert("Cannot checkout. Add address or login.");
-        }
+    const goToCheckout = () => {
+        navigate("/checkout");
     };
 
     if (loading) return <div style={styles.centerContainer}>Loading cart...</div>;
@@ -113,7 +103,7 @@ const CartPage = () => {
                         <strong>{cart.total_price} TL</strong>
                     </div>
 
-                    <button style={styles.checkoutButton} onClick={checkout}>
+                    <button style={styles.checkoutButton} onClick={goToCheckout}>
                         Proceed to Checkout
                     </button>
                 </div>

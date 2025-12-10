@@ -108,4 +108,11 @@ export const apiService = {
   getOrderHistory: () => apiService.get(`/orders/history/`),
 
   getInvoiceDetail: (id) => apiService.get(`/orders/invoice/${id}/`),
+
+  // -------------------------------
+  // User Address
+  // -------------------------------
+  getAddress: () => apiService.get(`/users/address/`),
+
+  updateAddress: (address) => apiService.put(`/users/address/`, { home_address: address }),
 };
