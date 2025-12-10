@@ -1,5 +1,4 @@
 // frontend/src/services/apiService.js
-
 import { authService } from "./authService";
 
 const API_BASE_URL = "http://127.0.0.1:8000/api";
@@ -51,35 +50,43 @@ export const apiService = {
   },
 
   // -------------------------------
+  // Generic PUT
+  // -------------------------------
+  put: async (endpoint, data) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response, () => apiService.put(endpoint, data));
+  },
+
+  // -------------------------------
   // Products
   // -------------------------------
-  getProducts: () => apiService.get(`/products/`),
-
+  getProducts: () => apiService.get("/products/"),
   getProductDetail: (id) => apiService.get(`/products/${id}/`),
-
-  getCategories: () => apiService.get(`/categories/`),
+  getCategories: () => apiService.get("/categories/"),
 
   // -------------------------------
   // Cart API
   // -------------------------------
-  getCart: () => apiService.get(`/cart/`),
-
+  getCart: () => apiService.get("/cart/"),
+  
   addToCart: (productId, quantity = 1) =>
-    apiService.post(`/cart/`, { product_id: productId, quantity }),
-
+    apiService.post("/cart/", { product_id: productId, quantity }),
+  
   updateCartItem: (itemId, quantity) =>
-    apiService.post(`/cart/item/${itemId}/`, { quantity }),
-
+    apiService.put(`/cart/item/${itemId}/`, { quantity }),
+  
   deleteCartItem: async (itemId) => {
     const response = await fetch(`${API_BASE_URL}/cart/item/${itemId}/`, {
       method: "DELETE",
       headers: getHeaders(),
     });
-    return handleResponse(response, () =>
-      apiService.deleteCartItem(itemId)
-    );
+    return handleResponse(response, () => apiService.deleteCartItem(itemId));
   },
-
+  
   clearCart: async () => {
     const response = await fetch(`${API_BASE_URL}/cart/clear/`, {
       method: "DELETE",
@@ -91,9 +98,7 @@ export const apiService = {
   // -------------------------------
   // Orders
   // -------------------------------
-  checkout: () => apiService.post(`/orders/checkout/`, {}),
-
-  getOrderHistory: () => apiService.get(`/orders/history/`),
-
+  checkout: () => apiService.post("/orders/checkout/", {}),
+  getOrderHistory: () => apiService.get("/orders/history/"),
   getInvoiceDetail: (id) => apiService.get(`/orders/invoice/${id}/`),
 };
