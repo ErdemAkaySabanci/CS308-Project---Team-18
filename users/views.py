@@ -8,6 +8,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 import re
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserSerializer
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -196,3 +199,11 @@ def register_view(request):
             {'error': f'Registration failed: {str(e)}'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)

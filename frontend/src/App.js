@@ -1,73 +1,47 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-// JWT Authentication components
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import { authService } from './services/authService';
-// Existing product pages
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+
+// Auth
+import Login from "./components/Login";
+import Register from "./components/Register";
+import Dashboard from "./components/Dashboard";
+import { authService } from "./services/authService";
+
+// Pages
 import ProductListPage from "./pages/ProductListPage";
-import RegisterPage from "./pages/RegisterPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
-import CategoryListPage from "./pages/CategoryListPage";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
 
-/**
- * ProtectedRoute Component
- * Protects routes that require authentication
- */
+import Navbar from "./components/Navbar";
+
+
+// Route Guards
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
+  return authService.isAuthenticated() ? children : <Navigate to="/login" replace />;
 };
 
-/**
- * PublicRoute Component
- * Redirects authenticated users away from auth pages
- */
 const PublicRoute = ({ children }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return children;
+  return authService.isAuthenticated() ? <Navigate to="/dashboard" replace /> : children;
 };
 
-/**
- * Main App Component
- */
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = authService.getToken();
-        if (token) {
-          console.log('User is authenticated');
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        authService.logout();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkAuth();
+    setLoading(false);
   }, []);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div style={{
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)",
+        background: "linear-gradient(135deg,#6a11cb 0%,#2575fc 100%)"
       }}>
         <div style={{ color: "white", fontSize: "20px" }}>Loading...</div>
       </div>
@@ -76,39 +50,23 @@ function App() {
 
   return (
     <Router>
+      <Navbar />
+    
+
       <Routes>
-        {/* JWT Authentication Routes */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        {/* Existing Product Routes */}
+        {/* AUTH */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+        {/* STORE */}
         <Route path="/" element={<ProductListPage />} />
-        <Route path="/products/register" element={<RegisterPage />} />
-        <Route path="/categories" element={<CategoryListPage />} />
-        <Route path="/cart" element={<CartPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
-        {/* Catch all - 404 redirect */}
+        <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
+
+        {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
