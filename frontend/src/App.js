@@ -16,6 +16,8 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 
 import Navbar from "./components/Navbar";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
 
 
 // Route Guards
