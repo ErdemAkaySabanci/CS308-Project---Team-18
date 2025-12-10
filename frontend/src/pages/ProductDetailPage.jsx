@@ -108,9 +108,9 @@ function ProductDetailPage() {
         {/* Info Section */}
         <div style={styles.infoSection}>
           <div style={styles.categoryBadge}>{product.category?.name || 'Sports'}</div>
-          
+
           <h1 style={styles.productTitle}>{product.name}</h1>
-          
+
           <p style={styles.description}>
             {product.description || "No description available."}
           </p>
@@ -165,6 +165,37 @@ function ProductDetailPage() {
             <div style={styles.featureItem}>
               <span style={styles.featureIcon}>✓</span>
               <span>Secure Payment</span>
+            </div>
+          </div>
+
+          {/* Specifications */}
+          <div style={styles.specificationsSection}>
+            <h3 style={styles.specificationsTitle}>📋 Product Specifications</h3>
+            <div style={styles.specsList}>
+              {product.model && (
+                <div style={styles.specItem}>
+                  <span style={styles.specLabel}>Model:</span>
+                  <span style={styles.specValue}>{product.model}</span>
+                </div>
+              )}
+              {product.serial_number && (
+                <div style={styles.specItem}>
+                  <span style={styles.specLabel}>Serial Number:</span>
+                  <span style={styles.specValue}>{product.serial_number}</span>
+                </div>
+              )}
+              {product.warranty_status && (
+                <div style={styles.specItem}>
+                  <span style={styles.specLabel}>Warranty:</span>
+                  <span style={styles.specValue}>{product.warranty_status}</span>
+                </div>
+              )}
+              {product.distributor && (
+                <div style={styles.specItem}>
+                  <span style={styles.specLabel}>Distributor:</span>
+                  <span style={styles.specValue}>{product.distributor}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -413,6 +444,43 @@ const styles = {
   },
   featureIcon: {
     fontSize: "18px",
+  },
+
+  // Specifications
+  specificationsSection: {
+    marginTop: "32px",
+    paddingTop: "32px",
+    borderTop: "2px solid #F1F5F9",
+  },
+  specificationsTitle: {
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: "20px",
+  },
+  specsList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  specItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 16px",
+    backgroundColor: "#F8FAFC",
+    borderRadius: "10px",
+    border: "1px solid #E2E8F0",
+  },
+  specLabel: {
+    fontSize: "15px",
+    fontWeight: "600",
+    color: "#475569",
+  },
+  specValue: {
+    fontSize: "15px",
+    color: "#1E293B",
+    fontWeight: "500",
   },
 
   // Loading
