@@ -26,7 +26,11 @@ const CartPage = () => {
     };
 
     const updateQuantity = async (itemId, newQty) => {
-        if (newQty < 1) return;
+        // If quantity would become 0 or less, remove the item
+        if (newQty < 1) {
+            await removeItem(itemId, true);
+            return;
+        }
 
         try {
             const updated = await apiService.updateCartItem(itemId, newQty);
@@ -36,8 +40,8 @@ const CartPage = () => {
         }
     };
 
-    const removeItem = async (itemId) => {
-        if (!window.confirm("Remove this item?")) return;
+    const removeItem = async (itemId, skipConfirm = false) => {
+        if (!skipConfirm && !window.confirm("Remove this item?")) return;
 
         try {
             const updated = await apiService.deleteCartItem(itemId);
@@ -49,7 +53,7 @@ const CartPage = () => {
 
     const checkout = async () => {
         try {
-            const result = await apiService.checkout();
+            await apiService.checkout();
             alert("Order Created!");
             navigate("/orders");
         } catch (err) {
@@ -77,7 +81,7 @@ const CartPage = () => {
                 <div style={styles.itemsList}>
                     {cart.items.map(item => (
                         <div key={item.id} style={styles.itemCard}>
-                            
+
                             <div style={styles.itemDetails}>
                                 <h3 style={styles.itemName}>{item.name}</h3>
                                 <p style={styles.itemPrice}>{item.price} TL</p>
