@@ -57,5 +57,56 @@ export const apiService = {
     }
 
     return response.json();
+  },
+
+  // Make authenticated PUT request
+  put: async (endpoint, data) => {
+    const token = authService.getToken();
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (response.status === 401) {
+      const newToken = await authService.refreshToken();
+      if (newToken) {
+        return apiService.put(endpoint, data);
+      } else {
+        window.location.href = '/login';
+        return null;
+      }
+    }
+
+    return response.json();
+  },
+
+  // Make authenticated DELETE request
+  delete: async (endpoint) => {
+    const token = authService.getToken();
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401) {
+      const newToken = await authService.refreshToken();
+      if (newToken) {
+        return apiService.delete(endpoint);
+      } else {
+        window.location.href = '/login';
+        return null;
+      }
+    }
+
+    return response.json();
   }
 };

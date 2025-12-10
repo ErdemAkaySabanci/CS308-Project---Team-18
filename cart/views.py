@@ -18,7 +18,7 @@ class CartView(APIView):
     def get(self, request):
         """Get user's cart with all items"""
         cart, created = Cart.objects.get_or_create(user=request.user)
-        serializer = CartSerializer(cart)
+        serializer = CartSerializer(cart, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -58,7 +58,7 @@ class CartView(APIView):
             cart_item.save()
 
         # Return updated cart
-        cart_serializer = CartSerializer(cart)
+        cart_serializer = CartSerializer(cart, context={'request': request})
         return Response(cart_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -91,7 +91,7 @@ class CartItemView(APIView):
         cart_item.quantity = quantity
         cart_item.save()
 
-        cart_serializer = CartSerializer(cart)
+        cart_serializer = CartSerializer(cart, context={'request': request})
         return Response(cart_serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, item_id):
@@ -100,7 +100,7 @@ class CartItemView(APIView):
         cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
         cart_item.delete()
 
-        cart_serializer = CartSerializer(cart)
+        cart_serializer = CartSerializer(cart, context={'request': request})
         return Response(cart_serializer.data, status=status.HTTP_200_OK)
 
 
@@ -113,5 +113,5 @@ class ClearCartView(APIView):
         cart = get_object_or_404(Cart, user=request.user)
         cart.items.all().delete()
 
-        cart_serializer = CartSerializer(cart)
+        cart_serializer = CartSerializer(cart, context={'request': request})
         return Response(cart_serializer.data, status=status.HTTP_200_OK)
