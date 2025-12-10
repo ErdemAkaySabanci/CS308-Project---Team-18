@@ -1,7 +1,7 @@
-// ProductDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import AddToCartButton from "../components/AddToCartButton";
+import { apiService } from "../services/apiService";
+import { useCart } from "../context/CartContext";
 
 function ProductDetailPage() {
   const { id } = useParams();
@@ -9,54 +9,48 @@ function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const { refreshCart } = useCart(); // backend cart reload için
+
   useEffect(() => {
-    async function fetchProduct() {
+    async function loadProduct() {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`http://127.0.0.1:8000/api/products/${id}/`);
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
+        const data = await apiService.get(`/products/${id}/`);
         setProduct(data);
       } catch (err) {
-        console.error("Error fetching product", err);
-        setError("An error occurred while loading the product.");
+        console.error(err);
+        setError("Could not load product.");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProduct();
+    loadProduct();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div style={styles.pageWrapper}>
-        <div style={styles.centerBox}>Loading...</div>
-      </div>
-    );
+  // Add to Cart backend çağrısı
+  async function handleAddToCart() {
+    try {
+      await apiService.addToCart(product.id, 1);
+      await refreshCart(); // frontend cart güncelle
+      alert("Product added to cart!");
+    } catch (err) {
+      alert("Could not add to cart.");
+      console.error(err);
+    }
   }
 
-  if (error || !product) {
+  if (loading) return <div style={styles.center}>Loading...</div>;
+  if (error || !product)
     return (
-      <div style={styles.pageWrapper}>
-        <div style={{ ...styles.centerBox, ...styles.errorBox }}>
-          {error || "Product not found."}
-        </div>
-        <div style={{ marginTop: 16, textAlign: "center" }}>
-          <Link to="/" style={styles.linkBack}>
-            ← Back to Products
-          </Link>
-        </div>
+      <div style={styles.center}>
+        <p>{error || "Product not found."}</p>
+        <Link to="/" style={styles.backLink}>← Back to Products</Link>
       </div>
     );
-  }
 
-  // Fallback image
   const imageUrl =
     product.image ||
     product.image_url ||
@@ -64,62 +58,52 @@ function ProductDetailPage() {
 
   return (
     <div style={styles.pageWrapper}>
-      <div style={styles.topBar}>
-        <Link to="/" style={styles.linkBack}>
-          ← Back to Products
-        </Link>
-      </div>
+      <Link to="/" style={styles.backLink}>← Back to Products</Link>
 
-      <div style={styles.detailCard}>
-        {/* Large product image */}
+      <div style={styles.card}>
+        {/* Image */}
         <div style={styles.imageWrapper}>
           <img src={imageUrl} alt={product.name} style={styles.image} />
         </div>
 
-        {/* Product Info */}
-        <div style={styles.infoWrapper}>
-          <h1 style={styles.productName}>{product.name}</h1>
+        {/* Info */}
+        <div style={styles.info}>
+          <h1>{product.name}</h1>
 
-          {product.short_description || product.description ? (
-            <p style={styles.description}>
-              {product.short_description || product.description}
-            </p>
-          ) : (
-            <p style={styles.description}>
-              This product currently does not have a description.
-            </p>
-          )}
+          <p style={styles.description}>
+            {product.description?.slice(0, 200) || "No description available."}
+          </p>
 
-          <div style={styles.metaRow}>
-            <p style={styles.priceLabel}>
-              Price:
-              <span style={styles.priceValue}>
-                {product.price} TL
-              </span>
-            </p>
-
-            <div style={styles.stockInfo}>
-              {product.quantity_in_stock > 0 ? (
-                <span style={{ color: '#10B981', fontWeight: 'bold' }}>
-                  In Stock: {product.quantity_in_stock}
-                </span>
-              ) : (
-                <span style={{ color: '#EF4444', fontWeight: 'bold' }}>
-                  Out of Stock
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div style={styles.actionArea}>
-            {product.quantity_in_stock > 0 ? (
-              <AddToCartButton productId={product.id} />
-            ) : (
-              <button disabled style={styles.outOfStockButton}>
-                Out of Stock
-              </button>
+          <p style={styles.label}>
+            Price:
+            <span style={styles.price}> {product.discounted_price} TL</span>
+            {product.discount_rate > 0 && (
+              <span style={styles.oldPrice}> {product.price} TL</span>
             )}
-          </div>
+          </p>
+
+          <p style={styles.stock}>
+            {product.is_in_stock ? "🟢 In Stock" : "🔴 Out of Stock"}
+          </p>
+
+          {product.quantity_in_stock !== undefined && (
+  <p style={styles.stockCount}>
+    Remaining Stock: <strong>{product.quantity_in_stock}</strong>
+  </p>
+)}
+
+
+          <p style={styles.category}>
+            Category: <strong>{product.category?.name}</strong>
+          </p>
+
+          <button
+            onClick={handleAddToCart}
+            style={styles.addButton}
+            disabled={!product.is_in_stock}
+          >
+            Add to Cart
+          </button>
         </div>
       </div>
     </div>
@@ -128,122 +112,72 @@ function ProductDetailPage() {
 
 const styles = {
   pageWrapper: {
+    padding: "24px",
     minHeight: "100vh",
-    padding: "24px 16px 40px",
-    fontFamily:
-      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    color: "#1A1A1A",
     background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
-    backgroundAttachment: "fixed",
+    fontFamily: "Inter, sans-serif",
   },
-  topBar: {
-    maxWidth: "960px",
-    margin: "0 auto 16px",
-  },
-  linkBack: {
-    fontSize: "14px",
+  backLink: {
+    color: "#fff",
     textDecoration: "none",
-    color: "#1A1A1A",
-    fontWeight: 500,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    padding: '8px 16px',
-    borderRadius: '8px',
+    fontSize: "14px",
   },
-  detailCard: {
-    maxWidth: "960px",
-    margin: "0 auto",
-    backgroundColor: "#FFFFFF",
-    borderRadius: "18px",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
-    padding: "20px",
+  card: {
+    marginTop: 20,
+    background: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
+    gap: 20,
+    maxWidth: 900,
+    marginLeft: "auto",
+    marginRight: "auto",
   },
   imageWrapper: {
     width: "100%",
-    borderRadius: "16px",
+    height: 350,
     overflow: "hidden",
-    backgroundColor: "#E5E7EB",
+    borderRadius: 16,
   },
   image: {
     width: "100%",
-    height: "auto",
-    maxHeight: "500px",
-    objectFit: "contain",
-    display: "block",
+    height: "100%",
+    objectFit: "cover",
   },
-  infoWrapper: {
-    width: "100%",
+  info: { padding: 4 },
+  description: { marginTop: 10, color: "#444" },
+  label: { fontWeight: 600 },
+  price: { color: "#FF7A00", fontWeight: 700, marginLeft: 5 },
+  oldPrice: {
+    marginLeft: 10,
+    textDecoration: "line-through",
+    color: "#777",
+    fontSize: 14,
   },
-  productName: {
-    margin: 0,
-    fontSize: "28px",
-    fontWeight: 700,
-    color: "#1A1A1A",
-  },
-  description: {
-    marginTop: "10px",
-    marginBottom: "24px",
-    fontSize: "16px",
-    lineHeight: 1.6,
-    color: "#4B5563",
-  },
-  metaRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    gap: '16px'
-  },
-  priceLabel: {
-    margin: 0,
-    fontSize: "18px",
+  stock: { marginTop: 8 },
+  category: { marginTop: 8, color: "#555" },
+  addButton: {
+    marginTop: 16,
+    background: "#2D5FFF",
+    color: "#fff",
+    padding: "10px 20px",
+    borderRadius: 8,
+    border: "none",
     fontWeight: 600,
-    color: "#1A1A1A",
+    cursor: "pointer",
   },
-  priceValue: {
-    color: "#FF7A00",
-    fontSize: "24px",
-    fontWeight: 700,
-    marginLeft: "8px",
-  },
-  stockInfo: {
-    fontSize: '16px',
-    padding: '8px 12px',
-    backgroundColor: '#F3F4F6',
-    borderRadius: '8px',
-  },
-  actionArea: {
-    marginTop: '16px',
-    maxWidth: '300px'
-  },
-  outOfStockButton: {
-    width: '100%',
-    padding: '12px 24px',
-    backgroundColor: '#E5E7EB',
-    color: '#9CA3AF',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'not-allowed',
-  },
-  centerBox: {
-    maxWidth: "420px",
-    margin: "120px auto 0",
-    padding: "18px 22px",
-    borderRadius: "12px",
-    backgroundColor: "#FFFFFF",
-    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
+
+  stockCount: {
+  marginTop: 4,
+  fontSize: 15,
+  color: "#222",
+},
+  center: {
     textAlign: "center",
-    fontSize: "15px",
-  },
-  errorBox: {
-    border: "1px solid #FCA5A5",
-    backgroundColor: "#FEF2F2",
-    color: "#B91C1C",
+    marginTop: "20vh",
+    color: "#fff",
   },
 };
 
