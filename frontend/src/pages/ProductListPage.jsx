@@ -1,93 +1,137 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { apiService } from "../services/apiService";
+import CategoryBar from "../components/CategoryBar";
 
 function ProductListPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Search, Sorting, Selected Category
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const urlCategoryId = params.get("category");
+
   useEffect(() => {
-    async function fetchProducts() {
+    async function loadProducts() {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch("http://127.0.0.1:8000/api/products/");
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+        let data;
+
+        // Eğer URL üzerinden kategori geldiyse, backend'den filtreli çek
+        if (urlCategoryId) {
+          data = await apiService.get(`/products/?category=${urlCategoryId}`);
+        } else {
+          data = await apiService.get("/products/");
         }
 
-        const data = await res.json();
-        const results = Array.isArray(data) ? data : data.results;
-        setProducts(results || []);
+        const list = Array.isArray(data) ? data : data.results;
+        setProducts(list || []);
       } catch (err) {
-        console.error("Error fetching products", err);
-        setError("An error occurred while loading products.");
+        console.error(err);
+        setError("Could not load products.");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProducts();
-  }, []);
+    loadProducts();
+  }, [urlCategoryId]);
 
-  if (loading) {
-    return (
-      <div style={styles.pageWrapper}>
-        <div style={styles.centerBox}>Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <div style={styles.center}>Loading...</div>;
+  if (error) return <div style={styles.center}>{error}</div>;
 
-  if (error) {
-    return (
-      <div style={styles.pageWrapper}>
-        <div style={{ ...styles.centerBox, ...styles.errorBox }}>{error}</div>
-      </div>
-    );
-  }
+  // --------------------------
+  // 🔍 Search Filter
+  // --------------------------
+  const searchFiltered = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  if (products.length === 0) {
-    return (
-      <div style={styles.pageWrapper}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Products</h1>
-            <p style={styles.subtitle}>There are no products in the system yet.</p>
-          </div>
-          <Link to="/register" style={styles.primaryButton}>
-            Go to Register
-          </Link>
-        </div>
+  // --------------------------
+  // 🟦 Category Filter
+  // Backend, ürünlerde şu alanı gönderiyor:
+  //  "category_name": "Basketbol"
+  // --------------------------
+  const categoryFiltered = searchFiltered.filter((p) => {
+    if (!selectedCategory) return true; // kategori seçilmemişse tüm ürünler
+    return p.category_name === selectedCategory.name;
+  });
 
-        <div style={styles.emptyState}>
-          <p style={styles.emptyText}>
-            Once products are added, you will be able to see them here.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // --------------------------
+  // ↕️ Sorting
+  // --------------------------
+  const sortedProducts = [...categoryFiltered].sort((a, b) => {
+    if (sortOption === "price_low") return a.price - b.price;
+    if (sortOption === "price_high") return b.price - a.price;
+    if (sortOption === "name_az") return a.name.localeCompare(b.name);
+    if (sortOption === "name_za") return b.name.localeCompare(a.name);
+    return 0;
+  });
 
   return (
     <div style={styles.pageWrapper}>
+
+      {/* 🔵 CATEGORY BAR (Dinamik API) */}
+      <CategoryBar onSelect={(cat) => setSelectedCategory(cat)} />
+
       {/* Header */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Products</h1>
-          <p style={styles.subtitle}>
-            Browse the products available in our store.
-          </p>
+          <p style={styles.subtitle}>Browse all available products</p>
         </div>
 
-        <Link to="/register" style={styles.primaryButton}>
-          Go to Register
+        <Link to="/categories" style={styles.primaryButton}>
+          Categories
         </Link>
       </div>
 
-      {/* Product Grid */}
+      <div style={styles.searchSortRow}>
+  <input
+    type="text"
+    placeholder="Search products..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    style={styles.searchInput}
+  />
+
+  <select
+    value={sortOption}
+    onChange={(e) => setSortOption(e.target.value)}
+    style={styles.sortSelect}
+  >
+    <option value="">Sort By</option>
+    <option value="price_low">Price: Low → High</option>
+    <option value="price_high">Price: High → Low</option>
+    <option value="name_az">Name: A → Z</option>
+    <option value="name_za">Name: Z → A</option>
+  </select>
+
+  {/* 🔴 CLEAR FILTERS BUTTON */}
+  <button
+    onClick={() => {
+      setSelectedCategory(null);
+      setSearchTerm("");
+      setSortOption("");
+    }}
+    style={styles.clearButton}
+  >
+    Clear Filters
+  </button>
+</div>
+
+
+      {/* PRODUCT LIST */}
       <div style={styles.grid}>
-        {products.map((p) => (
+        {sortedProducts.map((p) => (
           <div key={p.id} style={styles.card}>
             <div style={styles.cardContent}>
               <h3 style={styles.cardTitle}>{p.name}</h3>
@@ -98,10 +142,18 @@ function ProductListPage() {
 
               {p.description && (
                 <p style={styles.description}>
-                  {p.description.length > 90
-                    ? p.description.slice(0, 90) + "..."
+                  {p.description.length > 60
+                    ? p.description.slice(0, 60) + "..."
                     : p.description}
                 </p>
+              )}
+
+              {p.image && (
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  style={styles.productImage}
+                />
               )}
             </div>
 
@@ -117,141 +169,99 @@ function ProductListPage() {
   );
 }
 
+/* ---------- STYLES ---------- */
+
 const styles = {
   pageWrapper: {
     minHeight: "100vh",
     padding: "24px 16px 40px",
-    fontFamily:
-      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    color: "#1A1A1A",
-  
-    /* Yeni gradient arka plan */
+    fontFamily: "Inter, sans-serif",
     background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
-  
-    /* Gradient yumuşak görünmesi için */
     backgroundAttachment: "fixed",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    gap: "16px",
-    marginBottom: "24px",
+    marginBottom: "20px",
   },
-  title: {
-    margin: 0,
-    fontSize: "28px",
-    fontWeight: 700,
-    color: "#1A1A1A",
+  title: { margin: 0, fontSize: "28px", fontWeight: 700 },
+  subtitle: { marginTop: 8, color: "#4B5563" },
+  searchSortRow: {
+    display: "flex",
+    gap: "12px",
+    marginBottom: "20px",
   },
-  subtitle: {
-    marginTop: "8px",
-    marginBottom: 0,
-    fontSize: "14px",
-    color: "#4B5563",
+  searchInput: {
+    flex: 1,
+    padding: "10px",
+    fontSize: "16px",
+    borderRadius: 8,
+    border: "1px solid #ccc",
+  },
+  sortSelect: {
+    padding: "10px",
+    borderRadius: 8,
+    border: "1px solid #aaa",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-    gap: "18px",
+    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    gap: "20px",
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: "14px",
-    padding: "16px 18px",
-    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-  cardContent: {
-    marginBottom: "12px",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 16,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
   },
   cardTitle: {
-    margin: 0,
-    fontSize: "18px",
+    fontSize: 18,
     fontWeight: 600,
-    color: "#1A1A1A",
-  },
-  description: {
-    marginTop: "8px",
-    marginBottom: 0,
-    fontSize: "14px",
-    color: "#4B5563",
-    lineHeight: 1.4,
-  },
-  price: {
-    marginTop: "10px",
-    marginBottom: 0,
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#1A1A1A",
   },
   priceValue: {
-    fontSize: "18px",
     fontWeight: 700,
-    color: "#FF7A00", // Secondary – orange
-    marginLeft: "4px",
+    color: "#FF7A00",
   },
-  cardFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-  },
-  primaryButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "8px 16px",
-    borderRadius: "999px",
-    border: "none",
-    backgroundColor: "#2D5FFF", // Primary blue
-    color: "#FFFFFF",
-    fontSize: "14px",
-    fontWeight: 600,
-    textDecoration: "none",
-    cursor: "pointer",
+  productImage: {
+    width: "100%",
+    marginTop: 12,
+    borderRadius: 10,
   },
   secondaryButton: {
-    padding: "6px 14px",
-    borderRadius: "999px",
-    border: "1px solid #FF7A00", // Secondary orange border
-    backgroundColor: "#FFFFFF",
+    padding: "8px 16px",
+    borderRadius: 20,
+    border: "1px solid #FF7A00",
     color: "#FF7A00",
-    fontSize: "13px",
-    fontWeight: 600,
     textDecoration: "none",
-    cursor: "pointer",
+    fontWeight: 500,
   },
-  centerBox: {
-    maxWidth: "400px",
-    margin: "120px auto 0",
-    padding: "16px 20px",
-    borderRadius: "12px",
-    backgroundColor: "#FFFFFF",
-    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)",
+  primaryButton: {
+    padding: "8px 16px",
+    borderRadius: 30,
+    backgroundColor: "#2D5FFF",
+    color: "#FFF",
+    textDecoration: "none",
+    fontWeight: 600,
+  },
+  center: {
+    marginTop: "20vh",
     textAlign: "center",
-    fontSize: "15px",
-    color: "#1A1A1A",
-    fontFamily:
-      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 20,
   },
-  errorBox: {
-    border: "1px solid #FCA5A5",
-    backgroundColor: "#FEF2F2",
-    color: "#B91C1C",
-  },
-  emptyState: {
-    marginTop: "32px",
-    padding: "24px",
-    borderRadius: "12px",
-    backgroundColor: "#FFFFFF",
-    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.05)",
-  },
-  emptyText: {
-    margin: 0,
-    fontSize: "14px",
-    color: "#4B5563",
-  },
+
+  clearButton: {
+  padding: "10px 14px",
+  backgroundColor: "#ff4d4d",
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 600,
+  transition: "0.2s",
+},
+
+
 };
 
 export default ProductListPage;

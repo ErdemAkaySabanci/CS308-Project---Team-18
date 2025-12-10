@@ -33,22 +33,27 @@ const Navbar = () => {
                 <div style={styles.desktopMenu} className="desktop-menu">
                     <NavLink
                         to="/"
-                        style={({ isActive }) => isActive ? styles.activeLink : styles.link}
+                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
                         end
                     >
                         Home
                     </NavLink>
-                    <NavLink
-                        to="/categories"
-                        style={({ isActive }) => isActive ? styles.activeLink : styles.link}
-                    >
-                        Categories
-                    </NavLink>
+
+                   
+
                     <NavLink
                         to="/cart"
-                        style={({ isActive }) => isActive ? styles.activeLink : styles.link}
+                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
                     >
                         Cart
+                    </NavLink>
+
+                    {/* ⭐️ My Orders Added */}
+                    <NavLink
+                        to="/orders"
+                        style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                    >
+                        My Orders
                     </NavLink>
 
                     {isAuthenticated ? (
@@ -59,14 +64,11 @@ const Navbar = () => {
                         <div style={styles.authLinks}>
                             <NavLink
                                 to="/login"
-                                style={({ isActive }) => isActive ? styles.activeLink : styles.link}
+                                style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
                             >
                                 Login
                             </NavLink>
-                            <NavLink
-                                to="/register"
-                                style={styles.registerButton}
-                            >
+                            <NavLink to="/register" style={styles.registerButton}>
                                 Register
                             </NavLink>
                         </div>
@@ -74,7 +76,11 @@ const Navbar = () => {
                 </div>
 
                 {/* Mobile Menu Button */}
-                <button style={styles.mobileMenuButton} className="mobile-menu-button" onClick={toggleMobileMenu}>
+                <button
+                    style={styles.mobileMenuButton}
+                    className="mobile-menu-button"
+                    onClick={toggleMobileMenu}
+                >
                     <span style={styles.hamburgerIcon}>☰</span>
                 </button>
             </div>
@@ -84,43 +90,54 @@ const Navbar = () => {
                 <div style={styles.mobileMenu}>
                     <NavLink
                         to="/"
-                        style={({ isActive }) => isActive ? styles.mobileActiveLink : styles.mobileLink}
+                        style={({ isActive }) =>
+                            isActive ? styles.mobileActiveLink : styles.mobileLink
+                        }
                         onClick={closeMobileMenu}
                         end
                     >
                         Home
                     </NavLink>
-                    <NavLink
-                        to="/categories"
-                        style={({ isActive }) => isActive ? styles.mobileActiveLink : styles.mobileLink}
-                        onClick={closeMobileMenu}
-                    >
-                        Categories
-                    </NavLink>
+
+                   
+
                     <NavLink
                         to="/cart"
-                        style={({ isActive }) => isActive ? styles.mobileActiveLink : styles.mobileLink}
+                        style={({ isActive }) =>
+                            isActive ? styles.mobileActiveLink : styles.mobileLink
+                        }
                         onClick={closeMobileMenu}
                     >
                         Cart
                     </NavLink>
 
+                    {/* ⭐️ Mobile My Orders */}
+                    <NavLink
+                        to="/orders"
+                        style={({ isActive }) =>
+                            isActive ? styles.mobileActiveLink : styles.mobileLink
+                        }
+                        onClick={closeMobileMenu}
+                    >
+                        My Orders
+                    </NavLink>
+
                     {isAuthenticated ? (
-                        <button
-                            onClick={handleLogout}
-                            style={styles.mobileLogoutButton}
-                        >
+                        <button onClick={handleLogout} style={styles.mobileLogoutButton}>
                             Logout
                         </button>
                     ) : (
                         <>
                             <NavLink
                                 to="/login"
-                                style={({ isActive }) => isActive ? styles.mobileActiveLink : styles.mobileLink}
+                                style={({ isActive }) =>
+                                    isActive ? styles.mobileActiveLink : styles.mobileLink
+                                }
                                 onClick={closeMobileMenu}
                             >
                                 Login
                             </NavLink>
+
                             <NavLink
                                 to="/register"
                                 style={styles.mobileRegisterButton}
@@ -157,20 +174,11 @@ const styles = {
     logo: {
         fontSize: '24px',
         fontWeight: '700',
-        color: '#2D5FFF', // Primary
+        color: '#2D5FFF',
         textDecoration: 'none',
     },
     desktopMenu: {
-        display: 'flex', // Hidden on mobile via CSS media query usually, but here we use JS state or just hide if window width is small. 
-        // Since we can't easily do media queries in inline styles, we'll rely on the mobile menu button logic 
-        // or assume this is a simple implementation. 
-        // For a robust solution, we'd use a CSS file.
-        // I will add a simple display: 'none' logic if I could detect width, but React inline styles are tricky for responsiveness.
-        // Instead, I'll use a CSS class approach if possible, but I'm restricted to inline styles by the prompt style mostly.
-        // Let's try to simulate it by just showing it and hiding on mobile if I could, 
-        // but for now I'll just render it and let the user know it's a basic responsive implementation.
-        // actually, I can't hide it easily without window resize listener or CSS.
-        // I will add a style block to the document head or just use a simple approach.
+        display: 'flex',
         alignItems: 'center',
         gap: '32px',
     },
@@ -179,7 +187,6 @@ const styles = {
         color: '#667085',
         fontWeight: '500',
         fontSize: '16px',
-        transition: 'color 0.2s',
     },
     activeLink: {
         textDecoration: 'none',
@@ -199,7 +206,6 @@ const styles = {
         padding: '10px 20px',
         borderRadius: '8px',
         fontWeight: '600',
-        transition: 'background-color 0.2s',
     },
     logoutButton: {
         backgroundColor: 'transparent',
@@ -207,12 +213,11 @@ const styles = {
         padding: '8px 16px',
         borderRadius: '8px',
         cursor: 'pointer',
-        fontFamily: 'inherit',
         fontWeight: '600',
         color: '#344054',
     },
     mobileMenuButton: {
-        display: 'none', // Hidden by default, shown on mobile via CSS
+        display: 'none',
         background: 'none',
         border: 'none',
         fontSize: '24px',
@@ -233,21 +238,18 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     },
     mobileLink: {
         textDecoration: 'none',
         color: '#667085',
         fontSize: '18px',
         fontWeight: '500',
-        padding: '8px 0',
     },
     mobileActiveLink: {
         textDecoration: 'none',
         color: '#2D5FFF',
         fontSize: '18px',
         fontWeight: '600',
-        padding: '8px 0',
     },
     mobileRegisterButton: {
         textDecoration: 'none',
@@ -267,12 +269,10 @@ const styles = {
         color: '#344054',
         cursor: 'pointer',
         textAlign: 'center',
-        fontFamily: 'inherit',
-        fontSize: '16px',
     },
 };
 
-// Inject media queries for responsiveness
+// Media Queries Injection
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   @media (max-width: 768px) {
@@ -285,13 +285,5 @@ styleSheet.innerText = `
   }
 `;
 document.head.appendChild(styleSheet);
-
-// Add classes to elements for media query targeting
-// Note: In a real app, we'd use CSS modules or styled-components.
-// Here we patch it by modifying the style objects slightly or just relying on the injected CSS
-// to target classes we add manually.
-
-// Let's modify the component to use className for the responsive parts
-// I'll update the render method above to include classNames.
 
 export default Navbar;
