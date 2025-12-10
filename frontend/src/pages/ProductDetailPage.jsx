@@ -8,15 +8,15 @@ function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  const { refreshCart } = useCart(); // backend cart reload için
+  const { refreshCart } = useCart();
 
   useEffect(() => {
     async function loadProduct() {
       try {
         setLoading(true);
         setError(null);
-
         const data = await apiService.get(`/products/${id}/`);
         setProduct(data);
       } catch (err) {
@@ -26,84 +26,147 @@ function ProductDetailPage() {
         setLoading(false);
       }
     }
-
     loadProduct();
   }, [id]);
 
-  // Add to Cart backend çağrısı
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+  };
+
   async function handleAddToCart() {
     try {
       await apiService.addToCart(product.id, 1);
-      await refreshCart(); // frontend cart güncelle
-      alert("Product added to cart!");
+      await refreshCart();
+      showToast('Product added to cart! 🛒', 'success');
     } catch (err) {
-      alert("Could not add to cart.");
+      showToast('Could not add to cart', 'error');
       console.error(err);
     }
   }
 
-  if (loading) return <div style={styles.center}>Loading...</div>;
-  if (error || !product)
+  if (loading) {
     return (
-      <div style={styles.center}>
-        <p>{error || "Product not found."}</p>
-        <Link to="/" style={styles.backLink}>← Back to Products</Link>
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>Loading product...</p>
       </div>
     );
+  }
 
-  const imageUrl =
-    product.image ||
-    product.image_url ||
-    "https://via.placeholder.com/800x500?text=Product+Image";
+  if (error || !product) {
+    return (
+      <div style={styles.errorContainer}>
+        <span style={styles.errorIcon}>😕</span>
+        <p>{error || "Product not found."}</p>
+        <Link to="/" style={styles.backButton}>← Back to Products</Link>
+      </div>
+    );
+  }
+
+  const imageUrl = product.image || product.image_url || null;
 
   return (
     <div style={styles.pageWrapper}>
-      <Link to="/" style={styles.backLink}>← Back to Products</Link>
+      {/* Toast Notification */}
+      {toast.show && (
+        <div style={{
+          ...styles.toast,
+          ...(toast.type === 'success' ? styles.toastSuccess : styles.toastError)
+        }}>
+          <span style={styles.toastIcon}>
+            {toast.type === 'success' ? '✓' : '✕'}
+          </span>
+          <span style={styles.toastMessage}>{toast.message}</span>
+        </div>
+      )}
 
-      <div style={styles.card}>
-        {/* Image */}
-        <div style={styles.imageWrapper}>
-          <img src={imageUrl} alt={product.name} style={styles.image} />
+      {/* Breadcrumb */}
+      <div style={styles.breadcrumb}>
+        <Link to="/" style={styles.breadcrumbLink}>Home</Link>
+        <span style={styles.breadcrumbSeparator}>/</span>
+        <span style={styles.breadcrumbCurrent}>{product.name}</span>
+      </div>
+
+      <div style={styles.productContainer}>
+        {/* Image Section */}
+        <div style={styles.imageSection}>
+          <div style={styles.imageWrapper}>
+            {imageUrl ? (
+              <img src={imageUrl} alt={product.name} style={styles.productImage} />
+            ) : (
+              <div style={styles.placeholderImage}>
+                <span>🏃</span>
+              </div>
+            )}
+            {product.discount_rate > 0 && (
+              <span style={styles.discountBadge}>-{product.discount_rate}% OFF</span>
+            )}
+          </div>
         </div>
 
-        {/* Info */}
-        <div style={styles.info}>
-          <h1>{product.name}</h1>
-
+        {/* Info Section */}
+        <div style={styles.infoSection}>
+          <div style={styles.categoryBadge}>{product.category?.name || 'Sports'}</div>
+          
+          <h1 style={styles.productTitle}>{product.name}</h1>
+          
           <p style={styles.description}>
-            {product.description?.slice(0, 200) || "No description available."}
+            {product.description || "No description available."}
           </p>
 
-          <p style={styles.label}>
-            Price:
-            <span style={styles.price}> {product.discounted_price} TL</span>
+          {/* Price */}
+          <div style={styles.priceContainer}>
+            <span style={styles.currentPrice}>{product.discounted_price || product.price} TL</span>
             {product.discount_rate > 0 && (
-              <span style={styles.oldPrice}> {product.price} TL</span>
+              <span style={styles.originalPrice}>{product.price} TL</span>
             )}
-          </p>
+          </div>
 
-          <p style={styles.stock}>
-            {product.is_in_stock ? "🟢 In Stock" : "🔴 Out of Stock"}
-          </p>
+          {/* Stock Status */}
+          <div style={styles.stockContainer}>
+            <div style={{
+              ...styles.stockBadge,
+              ...(product.is_in_stock ? styles.inStock : styles.outOfStock)
+            }}>
+              <span style={styles.stockDot}></span>
+              {product.is_in_stock ? 'In Stock' : 'Out of Stock'}
+            </div>
+            {product.quantity_in_stock !== undefined && (
+              <span style={styles.stockCount}>
+                {product.quantity_in_stock} units available
+              </span>
+            )}
+          </div>
 
-          {product.quantity_in_stock !== undefined && (
-  <p style={styles.stockCount}>
-    Remaining Stock: <strong>{product.quantity_in_stock}</strong>
-  </p>
-)}
-
-
-          <p style={styles.category}>
-            Category: <strong>{product.category?.name}</strong>
-          </p>
-
+          {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            style={styles.addButton}
+            style={{
+              ...styles.addToCartButton,
+              ...(product.is_in_stock ? {} : styles.buttonDisabled)
+            }}
             disabled={!product.is_in_stock}
           >
+            <span style={styles.cartIcon}>🛒</span>
             Add to Cart
           </button>
+
+          {/* Features */}
+          <div style={styles.features}>
+            <div style={styles.featureItem}>
+              <span style={styles.featureIcon}>🚚</span>
+              <span>Free Delivery</span>
+            </div>
+            <div style={styles.featureItem}>
+              <span style={styles.featureIcon}>↩️</span>
+              <span>30-Day Returns</span>
+            </div>
+            <div style={styles.featureItem}>
+              <span style={styles.featureIcon}>✓</span>
+              <span>Secure Payment</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -112,73 +175,314 @@ function ProductDetailPage() {
 
 const styles = {
   pageWrapper: {
-    padding: "24px",
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #2D5FFF 0%, #FF7A00 100%)",
-    fontFamily: "Inter, sans-serif",
-  },
-  backLink: {
-    color: "#fff",
-    textDecoration: "none",
-    fontSize: "14px",
-  },
-  card: {
-    marginTop: 20,
-    background: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 20,
-    maxWidth: 900,
-    marginLeft: "auto",
-    marginRight: "auto",
-  },
-  imageWrapper: {
-    width: "100%",
-    height: 350,
-    overflow: "hidden",
-    borderRadius: 16,
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  info: { padding: 4 },
-  description: { marginTop: 10, color: "#444" },
-  label: { fontWeight: 600 },
-  price: { color: "#FF7A00", fontWeight: 700, marginLeft: 5 },
-  oldPrice: {
-    marginLeft: 10,
-    textDecoration: "line-through",
-    color: "#777",
-    fontSize: 14,
-  },
-  stock: { marginTop: 8 },
-  category: { marginTop: 8, color: "#555" },
-  addButton: {
-    marginTop: 16,
-    background: "#2D5FFF",
-    color: "#fff",
-    padding: "10px 20px",
-    borderRadius: 8,
-    border: "none",
-    fontWeight: 600,
-    cursor: "pointer",
+    backgroundColor: "#F8FAFC",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    padding: "24px",
   },
 
+  // Toast
+  toast: {
+    position: "fixed",
+    top: "100px",
+    right: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "16px 24px",
+    borderRadius: "12px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+    zIndex: 9999,
+    animation: "slideIn 0.3s ease",
+  },
+  toastSuccess: {
+    backgroundColor: "#10B981",
+    color: "#FFFFFF",
+  },
+  toastError: {
+    backgroundColor: "#EF4444",
+    color: "#FFFFFF",
+  },
+  toastIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    fontWeight: "bold",
+  },
+  toastMessage: {
+    fontSize: "15px",
+    fontWeight: "600",
+  },
+
+  // Breadcrumb
+  breadcrumb: {
+    maxWidth: "1200px",
+    margin: "0 auto 24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  breadcrumbLink: {
+    color: "#3B82F6",
+    textDecoration: "none",
+    fontWeight: "500",
+    fontSize: "14px",
+  },
+  breadcrumbSeparator: {
+    color: "#94A3B8",
+  },
+  breadcrumbCurrent: {
+    color: "#64748B",
+    fontSize: "14px",
+  },
+
+  // Product Container
+  productContainer: {
+    maxWidth: "1200px",
+    margin: "0 auto",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "48px",
+    backgroundColor: "#FFFFFF",
+    borderRadius: "24px",
+    padding: "40px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+  },
+
+  // Image Section
+  imageSection: {},
+  imageWrapper: {
+    position: "relative",
+    borderRadius: "20px",
+    overflow: "hidden",
+    backgroundColor: "#F1F5F9",
+  },
+  productImage: {
+    width: "100%",
+    height: "500px",
+    objectFit: "cover",
+  },
+  placeholderImage: {
+    width: "100%",
+    height: "500px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "120px",
+    backgroundColor: "#FFF7ED",
+  },
+  discountBadge: {
+    position: "absolute",
+    top: "20px",
+    left: "20px",
+    backgroundColor: "#EF4444",
+    color: "#FFFFFF",
+    padding: "8px 16px",
+    borderRadius: "30px",
+    fontSize: "14px",
+    fontWeight: "700",
+  },
+
+  // Info Section
+  infoSection: {},
+  categoryBadge: {
+    display: "inline-block",
+    backgroundColor: "#FFF7ED",
+    color: "#EA580C",
+    padding: "6px 16px",
+    borderRadius: "20px",
+    fontSize: "13px",
+    fontWeight: "600",
+    marginBottom: "16px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  productTitle: {
+    fontSize: "32px",
+    fontWeight: "800",
+    color: "#1E293B",
+    margin: "0 0 16px 0",
+    lineHeight: "1.2",
+  },
+  description: {
+    fontSize: "16px",
+    color: "#64748B",
+    lineHeight: "1.7",
+    marginBottom: "24px",
+  },
+
+  // Price
+  priceContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    marginBottom: "24px",
+  },
+  currentPrice: {
+    fontSize: "36px",
+    fontWeight: "800",
+    color: "#F97316",
+  },
+  originalPrice: {
+    fontSize: "20px",
+    color: "#94A3B8",
+    textDecoration: "line-through",
+  },
+
+  // Stock
+  stockContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    marginBottom: "32px",
+  },
+  stockBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 16px",
+    borderRadius: "30px",
+    fontSize: "14px",
+    fontWeight: "600",
+  },
+  inStock: {
+    backgroundColor: "#ECFDF5",
+    color: "#059669",
+  },
+  outOfStock: {
+    backgroundColor: "#FEF2F2",
+    color: "#DC2626",
+  },
+  stockDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    backgroundColor: "currentColor",
+  },
   stockCount: {
-  marginTop: 4,
-  fontSize: 15,
-  color: "#222",
-},
-  center: {
-    textAlign: "center",
-    marginTop: "20vh",
-    color: "#fff",
+    color: "#64748B",
+    fontSize: "14px",
+  },
+
+  // Add to Cart Button
+  addToCartButton: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "12px",
+    padding: "18px 32px",
+    backgroundColor: "#F97316",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "14px",
+    fontSize: "18px",
+    fontWeight: "700",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    boxShadow: "0 4px 14px rgba(249, 115, 22, 0.4)",
+    marginBottom: "32px",
+  },
+  buttonDisabled: {
+    backgroundColor: "#E2E8F0",
+    color: "#94A3B8",
+    cursor: "not-allowed",
+    boxShadow: "none",
+  },
+  cartIcon: {
+    fontSize: "20px",
+  },
+
+  // Features
+  features: {
+    display: "flex",
+    gap: "24px",
+    paddingTop: "24px",
+    borderTop: "1px solid #F1F5F9",
+  },
+  featureItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    color: "#64748B",
+    fontSize: "14px",
+  },
+  featureIcon: {
+    fontSize: "18px",
+  },
+
+  // Loading
+  loadingContainer: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  spinner: {
+    width: "48px",
+    height: "48px",
+    border: "4px solid #FED7AA",
+    borderTopColor: "#F97316",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  loadingText: {
+    marginTop: "16px",
+    color: "#64748B",
+  },
+
+  // Error
+  errorContainer: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+    gap: "16px",
+  },
+  errorIcon: {
+    fontSize: "64px",
+  },
+  backButton: {
+    color: "#3B82F6",
+    textDecoration: "none",
+    fontWeight: "600",
   },
 };
+
+// Animations
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5) !important;
+  }
+  @media (max-width: 768px) {
+    .product-container {
+      grid-template-columns: 1fr !important;
+    }
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default ProductDetailPage;

@@ -10,6 +10,7 @@ function ProductListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -37,6 +38,29 @@ function ProductListPage() {
     }
     loadProducts();
   }, [urlCategoryId]);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+  };
+
+  const handleAddToCart = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!product.is_in_stock) {
+      showToast('Product is out of stock', 'error');
+      return;
+    }
+
+    try {
+      await apiService.addToCart(product.id, 1);
+      showToast(`${product.name} added to cart! 🛒`, 'success');
+    } catch (err) {
+      showToast('Could not add to cart. Please login first.', 'error');
+      console.error(err);
+    }
+  };
 
   // Filters
   const searchFiltered = products.filter((p) =>
@@ -76,6 +100,19 @@ function ProductListPage() {
 
   return (
     <div style={styles.pageWrapper}>
+      {/* Toast Notification */}
+      {toast.show && (
+        <div style={{
+          ...styles.toast,
+          ...(toast.type === 'success' ? styles.toastSuccess : styles.toastError)
+        }}>
+          <span style={styles.toastIcon}>
+            {toast.type === 'success' ? '✓' : '✕'}
+          </span>
+          <span style={styles.toastMessage}>{toast.message}</span>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div style={styles.hero}>
         <div style={styles.heroContent}>
@@ -149,12 +186,8 @@ function ProductListPage() {
         ) : (
           <div style={styles.grid}>
             {sortedProducts.map((p) => (
-              <Link 
-                to={`/products/${p.id}`} 
-                key={p.id} 
-                style={styles.cardLink}
-              >
-                <div style={styles.card} className="product-card">
+              <div key={p.id} style={styles.card} className="product-card">
+                <Link to={`/products/${p.id}`} style={styles.cardLink}>
                   <div style={styles.imageContainer}>
                     {p.image ? (
                       <img src={p.image} alt={p.name} style={styles.productImage} />
@@ -167,6 +200,11 @@ function ProductListPage() {
                       <span style={styles.discountBadge}>
                         -{p.discount_rate}%
                       </span>
+                    )}
+                    {!p.is_in_stock && (
+                      <div style={styles.outOfStockOverlay}>
+                        <span>Out of Stock</span>
+                      </div>
                     )}
                   </div>
 
@@ -193,12 +231,24 @@ function ProductListPage() {
                       </span>
                     </div>
                   </div>
+                </Link>
 
-                  <div style={styles.cardFooter}>
-                    <span style={styles.viewButton}>View Details →</span>
-                  </div>
+                <div style={styles.cardFooter}>
+                  <Link to={`/products/${p.id}`} style={styles.viewButton}>
+                    View Details
+                  </Link>
+                  <button
+                    onClick={(e) => handleAddToCart(e, p)}
+                    style={{
+                      ...styles.addToCartBtn,
+                      ...(p.is_in_stock ? {} : styles.addToCartBtnDisabled)
+                    }}
+                    disabled={!p.is_in_stock}
+                  >
+                    🛒 Add
+                  </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -212,6 +262,43 @@ const styles = {
     minHeight: "100vh",
     backgroundColor: "#F8FAFC",
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+  },
+
+  // Toast
+  toast: {
+    position: "fixed",
+    top: "100px",
+    right: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "16px 24px",
+    borderRadius: "12px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+    zIndex: 9999,
+    animation: "slideIn 0.3s ease",
+  },
+  toastSuccess: {
+    backgroundColor: "#10B981",
+    color: "#FFFFFF",
+  },
+  toastError: {
+    backgroundColor: "#EF4444",
+    color: "#FFFFFF",
+  },
+  toastIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    fontWeight: "bold",
+  },
+  toastMessage: {
+    fontSize: "15px",
+    fontWeight: "600",
   },
   
   // Hero - Blue to Orange gradient
@@ -327,10 +414,6 @@ const styles = {
   },
 
   // Card
-  cardLink: {
-    textDecoration: "none",
-    color: "inherit",
-  },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: "20px",
@@ -342,6 +425,13 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     border: "1px solid #F1F5F9",
+  },
+  cardLink: {
+    textDecoration: "none",
+    color: "inherit",
+    flex: "1",
+    display: "flex",
+    flexDirection: "column",
   },
   imageContainer: {
     position: "relative",
@@ -373,6 +463,20 @@ const styles = {
     padding: "6px 12px",
     borderRadius: "20px",
     fontSize: "13px",
+    fontWeight: "700",
+  },
+  outOfStockOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#FFFFFF",
+    fontSize: "16px",
     fontWeight: "700",
   },
 
@@ -436,13 +540,37 @@ const styles = {
   cardFooter: {
     padding: "16px 20px",
     borderTop: "1px solid #F1F5F9",
-    textAlign: "center",
-    background: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)",
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
   },
   viewButton: {
+    flex: "1",
+    textAlign: "center",
+    padding: "12px 16px",
+    backgroundColor: "#1E3A8A",
     color: "#FFFFFF",
+    textDecoration: "none",
+    borderRadius: "10px",
     fontWeight: "600",
     fontSize: "14px",
+    transition: "all 0.2s ease",
+  },
+  addToCartBtn: {
+    padding: "12px 16px",
+    backgroundColor: "#F97316",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "10px",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  addToCartBtnDisabled: {
+    backgroundColor: "#E2E8F0",
+    color: "#94A3B8",
+    cursor: "not-allowed",
   },
 
   // Loading
@@ -496,11 +624,21 @@ const styles = {
   },
 };
 
-// Add keyframes for spinner and hover effects
+// Add keyframes and hover effects
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
   .product-card:hover {
     transform: translateY(-8px);
