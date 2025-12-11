@@ -8,7 +8,7 @@ export const cartService = {
 
     // Add item to cart
     addToCart: async (productId, quantity = 1) => {
-    return await apiService.post('/cart/add/', {
+    return await apiService.post('/cart/', {
         product_id: productId,
         quantity: quantity,
     });

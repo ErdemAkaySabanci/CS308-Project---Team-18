@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/apiService';
+import { authService } from '../services/authService';
 
 const CartPage = () => {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: '' });
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const isLoggedIn = authService.isAuthenticated();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -63,6 +66,10 @@ const CartPage = () => {
     };
 
     const goToCheckout = () => {
+        if (!isLoggedIn) {
+            setShowLoginModal(true);
+            return;
+        }
         navigate("/checkout");
     };
 
@@ -174,6 +181,21 @@ const CartPage = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Login Required Modal */}
+            {showLoginModal && (
+                <div style={styles.loginModalOverlay} onClick={() => setShowLoginModal(false)}>
+                    <div style={styles.loginModal} onClick={(e) => e.stopPropagation()}>
+                        <div style={styles.modalIcon}>🔐</div>
+                        <h2 style={styles.modalTitle}>Sign In Required</h2>
+                        <p style={styles.modalText}>Please sign in to proceed with checkout and complete your purchase.</p>
+                        <div style={styles.modalButtons}>
+                            <button style={styles.modalButtonSecondary} onClick={() => setShowLoginModal(false)}>Continue Shopping</button>
+                            <Link to="/login" style={styles.modalButtonPrimary}>Sign In</Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -285,6 +307,14 @@ const styles = {
         fontWeight: "600",
         zIndex: 9999,
     },
+    loginModalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+    loginModal: { backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", maxWidth: "420px", width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" },
+    modalIcon: { fontSize: "64px", marginBottom: "20px" },
+    modalTitle: { fontSize: "24px", fontWeight: "700", color: "#1E293B", margin: "0 0 12px 0" },
+    modalText: { fontSize: "16px", color: "#64748B", margin: "0 0 32px 0", lineHeight: "1.6" },
+    modalButtons: { display: "flex", gap: "16px" },
+    modalButtonPrimary: { flex: 1, padding: "16px", backgroundColor: "#FF7A00", color: "#FFFFFF", border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" },
+    modalButtonSecondary: { flex: 1, padding: "16px", backgroundColor: "transparent", color: "#64748B", border: "2px solid #E2E8F0", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: "pointer" },
 };
 
 export default CartPage;

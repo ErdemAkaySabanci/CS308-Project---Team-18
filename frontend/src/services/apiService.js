@@ -1,7 +1,7 @@
 // frontend/src/services/apiService.js
 import { authService } from "./authService";
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+const API_BASE_URL = "http://localhost:8000/api";
 
 const getHeaders = () => {
   const token = authService.getToken();
@@ -19,7 +19,7 @@ async function handleResponse(response, retryCallback) {
   if (response.status === 401) {
     const newToken = await authService.refreshToken();
     if (newToken) return retryCallback();
-    window.location.href = "/login";
+    
     return null;
   }
   return response.json();
@@ -32,6 +32,7 @@ export const apiService = {
   get: async (endpoint) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "GET",
+      credentials: 'include',
       headers: getHeaders(),
     });
     return handleResponse(response, () => apiService.get(endpoint));
@@ -43,6 +44,7 @@ export const apiService = {
   post: async (endpoint, data) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
+      credentials: 'include',
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
@@ -55,6 +57,7 @@ export const apiService = {
   put: async (endpoint, data) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "PUT",
+      credentials: 'include',
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
@@ -82,6 +85,7 @@ export const apiService = {
   deleteCartItem: async (itemId) => {
     const response = await fetch(`${API_BASE_URL}/cart/item/${itemId}/`, {
       method: "DELETE",
+      credentials: 'include',
       headers: getHeaders(),
     });
     return handleResponse(response, () => apiService.deleteCartItem(itemId));
@@ -90,6 +94,7 @@ export const apiService = {
   clearCart: async () => {
     const response = await fetch(`${API_BASE_URL}/cart/clear/`, {
       method: "DELETE",
+      credentials: 'include',
       headers: getHeaders(),
     });
     return handleResponse(response, () => apiService.clearCart());
