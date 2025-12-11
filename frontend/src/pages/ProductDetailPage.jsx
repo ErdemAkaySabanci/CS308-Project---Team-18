@@ -10,7 +10,7 @@ function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
-  
+
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(null);
@@ -18,7 +18,7 @@ function ProductDetailPage() {
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  
+
   // Review eligibility state
   const [reviewEligibility, setReviewEligibility] = useState({
     canReview: false,
@@ -74,7 +74,7 @@ function ProductDetailPage() {
         existingReview: data.existing_review || null,
         loading: false
       });
-      
+
       // If user already reviewed, populate the form with existing data
       if (data.existing_review) {
         setUserRating(data.existing_review.rating);
@@ -122,7 +122,7 @@ function ProductDetailPage() {
         comment: userComment
       });
       showToast('Review submitted! Rating is visible now. Comment awaits approval.', 'success');
-      
+
       // Update eligibility state
       setReviewEligibility(prev => ({
         ...prev,
@@ -130,7 +130,7 @@ function ProductDetailPage() {
         reason: 'already_reviewed',
         message: 'You have already reviewed this product.'
       }));
-      
+
       // Reload reviews to show the new rating
       loadReviews();
     } catch (err) {
@@ -192,7 +192,7 @@ function ProductDetailPage() {
       return (
         <div style={styles.writeReviewCard}>
           <h3 style={styles.writeReviewTitle}>✍️ Write a Review</h3>
-          
+
           <div style={styles.ratingInput}>
             <label style={styles.ratingLabel}>Your Rating:</label>
             {renderStars(userRating, true, 32)}
@@ -282,7 +282,7 @@ function ProductDetailPage() {
         <p style={{ ...styles.eligibilityMessage, color: display.textColor }}>
           {reviewEligibility.message}
         </p>
-        
+
         {/* Show existing review if available */}
         {reviewEligibility.existingReview && (
           <div style={styles.existingReviewPreview}>
@@ -370,7 +370,6 @@ function ProductDetailPage() {
 
           <h1 style={styles.productTitle}>{product.name}</h1>
 
-<<<<<<< HEAD
           {/* Rating Summary */}
           {averageRating && (
             <div style={styles.ratingSummary}>
@@ -380,9 +379,7 @@ function ProductDetailPage() {
               </span>
             </div>
           )}
-          
-=======
->>>>>>> 46a615ac671cf24f2705dab9e10c5486205318d0
+
           <p style={styles.description}>
             {product.description || "No description available."}
           </p>
@@ -480,7 +477,7 @@ function ProductDetailPage() {
           <h3 style={styles.reviewsListTitle}>
             {totalReviews > 0 ? `All Reviews (${totalReviews})` : 'Reviews'}
           </h3>
-          
+
           {reviews.length === 0 ? (
             <div style={styles.noReviews}>
               <span style={{ fontSize: '48px' }}>📝</span>
@@ -503,7 +500,7 @@ function ProductDetailPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 {review.comment ? (
                   <p style={styles.reviewComment}>{review.comment}</p>
                 ) : (
@@ -653,6 +650,43 @@ const styles = {
   features: { display: "flex", gap: "24px", paddingTop: "24px", borderTop: "1px solid #F1F5F9" },
   featureItem: { display: "flex", alignItems: "center", gap: "8px", color: "#64748B", fontSize: "14px" },
 
+  // Specifications
+  specificationsSection: {
+    marginTop: "32px",
+    paddingTop: "32px",
+    borderTop: "2px solid #F1F5F9",
+  },
+  specificationsTitle: {
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: "20px",
+  },
+  specsList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  specItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 16px",
+    backgroundColor: "#F8FAFC",
+    borderRadius: "10px",
+    border: "1px solid #E2E8F0",
+  },
+  specLabel: {
+    fontSize: "15px",
+    fontWeight: "600",
+    color: "#475569",
+  },
+  specValue: {
+    fontSize: "15px",
+    color: "#1E293B",
+    fontWeight: "500",
+  },
+
   // Reviews Section
   reviewsSection: {
     maxWidth: "1200px",
@@ -663,7 +697,7 @@ const styles = {
     boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
   },
   reviewsTitle: { fontSize: "24px", fontWeight: "700", color: "#1E293B", marginBottom: "24px" },
-  
+
   // Write Review Card
   writeReviewCard: {
     backgroundColor: "#F0FDF4",
@@ -707,7 +741,7 @@ const styles = {
     cursor: "pointer",
     transition: "background-color 0.2s ease",
   },
-  
+
   // Eligibility Card (for non-eligible states)
   eligibilityCard: {
     backgroundColor: "#F8FAFC",
@@ -733,7 +767,7 @@ const styles = {
     lineHeight: "1.6",
   },
   loginLink: { color: "#F97316", fontWeight: "600", textDecoration: "none" },
-  
+
   // Existing review preview
   existingReviewPreview: {
     marginTop: "20px",
@@ -767,7 +801,7 @@ const styles = {
     fontSize: "11px",
     fontWeight: "600",
   },
-  
+
   // Loading spinner for eligibility check
   loadingSpinner: {
     width: "32px",
@@ -780,9 +814,9 @@ const styles = {
   },
 
   // Reviews List
-  reviewsList: { 
-    display: "flex", 
-    flexDirection: "column", 
+  reviewsList: {
+    display: "flex",
+    flexDirection: "column",
     gap: "16px",
   },
   reviewsListTitle: {
@@ -800,10 +834,10 @@ const styles = {
     padding: "20px",
     border: "1px solid #E2E8F0",
   },
-  reviewHeader: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "flex-start", 
+  reviewHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: "12px",
     flexWrap: "wrap",
     gap: "12px",
@@ -832,48 +866,7 @@ const styles = {
   noCommentText: { color: "#94A3B8", fontStyle: "italic", fontSize: "14px", marginBottom: "0", marginTop: "0" },
   reviewDate: { fontSize: "13px", color: "#94A3B8" },
 
-<<<<<<< HEAD
   // Loading & Error
-=======
-  // Specifications
-  specificationsSection: {
-    marginTop: "32px",
-    paddingTop: "32px",
-    borderTop: "2px solid #F1F5F9",
-  },
-  specificationsTitle: {
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: "20px",
-  },
-  specsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  specItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "12px 16px",
-    backgroundColor: "#F8FAFC",
-    borderRadius: "10px",
-    border: "1px solid #E2E8F0",
-  },
-  specLabel: {
-    fontSize: "15px",
-    fontWeight: "600",
-    color: "#475569",
-  },
-  specValue: {
-    fontSize: "15px",
-    color: "#1E293B",
-    fontWeight: "500",
-  },
-
-  // Loading
->>>>>>> 46a615ac671cf24f2705dab9e10c5486205318d0
   loadingContainer: {
     minHeight: "100vh",
     display: "flex",
