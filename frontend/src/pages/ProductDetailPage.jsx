@@ -401,6 +401,11 @@ function ProductDetailPage() {
               <span style={styles.stockDot}></span>
               {product.is_in_stock ? 'In Stock' : 'Out of Stock'}
             </div>
+            {product.quantity_in_stock !== undefined && (
+              <span style={styles.stockCount}>
+                {product.quantity_in_stock} units available
+              </span>
+            )}
           </div>
 
           {/* Add to Cart Button */}
@@ -628,6 +633,10 @@ const styles = {
   inStock: { backgroundColor: "#ECFDF5", color: "#059669" },
   outOfStock: { backgroundColor: "#FEF2F2", color: "#DC2626" },
   stockDot: { width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "currentColor" },
+  stockCount: {
+    color: "#64748B",
+    fontSize: "14px",
+  },
   addToCartButton: {
     width: "100%",
     display: "flex",
