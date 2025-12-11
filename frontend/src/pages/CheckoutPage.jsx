@@ -21,6 +21,7 @@ function CheckoutPage() {
     cvv: ''
   });
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [orderResult, setOrderResult] = useState(null); // Store order response with invoice
 
   const navigate = useNavigate();
 
@@ -134,12 +135,43 @@ function CheckoutPage() {
         }
       };
 
-      await apiService.post("/orders/checkout/", checkoutData);
+      const response = await apiService.post("/orders/checkout/", checkoutData);
+      setOrderResult(response);
       showToast("Order created successfully! 🎉", "success");
-      setTimeout(() => navigate("/orders"), 1500);
+      setCurrentStep(4); // Go to invoice display
     } catch (err) {
       console.error(err);
       showToast("Checkout failed. Please try again.", "error");
+    }
+  };
+
+  const downloadInvoice = async () => {
+    if (!orderResult) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000${orderResult.invoice_url}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${orderResult.invoice_number}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast("Invoice downloaded! 📥", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to download invoice.", "error");
     }
   };
 
@@ -197,6 +229,11 @@ function CheckoutPage() {
           <div style={currentStep >= 3 ? styles.stepActive : styles.step}>
             <span style={styles.stepNumber}>3</span>
             <span style={styles.stepLabel}>Confirm</span>
+          </div>
+          <div style={styles.stepLine}></div>
+          <div style={currentStep >= 4 ? styles.stepActive : styles.step}>
+            <span style={styles.stepNumber}>4</span>
+            <span style={styles.stepLabel}>Invoice</span>
           </div>
         </div>
 
@@ -383,6 +420,61 @@ function CheckoutPage() {
               >
                 🛒 Place Order
               </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 4: INVOICE */}
+        {currentStep === 4 && orderResult && (
+          <>
+            <div style={styles.successCard}>
+              <div style={styles.successIcon}>✓</div>
+              <h2 style={styles.successTitle}>Order Placed Successfully!</h2>
+              <p style={styles.successMessage}>
+                Your order has been confirmed and an invoice has been emailed to you.
+              </p>
+            </div>
+
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>📄 Invoice Details</h2>
+
+              <div style={styles.invoiceGrid}>
+                <div style={styles.invoiceItem}>
+                  <span style={styles.invoiceLabel}>Invoice Number:</span>
+                  <span style={styles.invoiceValue}>{orderResult.invoice_number}</span>
+                </div>
+
+                <div style={styles.invoiceItem}>
+                  <span style={styles.invoiceLabel}>Order ID:</span>
+                  <span style={styles.invoiceValue}>#{orderResult.order_id}</span>
+                </div>
+
+                <div style={styles.invoiceItem}>
+                  <span style={styles.invoiceLabel}>Total Amount:</span>
+                  <span style={styles.invoiceValue}>{cart.total_price} TL</span>
+                </div>
+
+                <div style={styles.invoiceItem}>
+                  <span style={styles.invoiceLabel}>Payment:</span>
+                  <span style={styles.invoiceValue}>Card ending in {paymentData.cardNumber.slice(-4)}</span>
+                </div>
+              </div>
+
+              <div style={styles.invoiceActions}>
+                <button
+                  onClick={downloadInvoice}
+                  style={styles.downloadButton}
+                >
+                  📥 Download Invoice PDF
+                </button>
+
+                <button
+                  style={styles.viewOrdersButton}
+                  onClick={() => navigate('/orders')}
+                >
+                  📋 View Order History
+                </button>
+              </div>
             </div>
           </>
         )}
@@ -691,6 +783,95 @@ const styles = {
     marginTop: "20px",
     fontSize: "14px",
     lineHeight: "1.6",
+  },
+
+  // Step 4: Invoice Display
+  successCard: {
+    background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+    padding: "40px",
+    borderRadius: "16px",
+    textAlign: "center",
+    marginBottom: "24px",
+    boxShadow: "0 10px 40px rgba(16, 185, 129, 0.3)",
+  },
+  successIcon: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px",
+    fontSize: "48px",
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  successTitle: {
+    color: "#fff",
+    fontSize: "28px",
+    fontWeight: "700",
+    marginBottom: "12px",
+  },
+  successMessage: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: "16px",
+    lineHeight: "1.6",
+  },
+  invoiceGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "20px",
+    marginBottom: "24px",
+  },
+  invoiceItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  invoiceLabel: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748B",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  invoiceValue: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  invoiceActions: {
+    display: "flex",
+    gap: "16px",
+    marginTop: "32px",
+  },
+  downloadButton: {
+    flex: 1,
+    padding: "16px",
+    background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "12px",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textDecoration: "none",
+    textAlign: "center",
+    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
+    transition: "all 0.2s ease",
+  },
+  viewOrdersButton: {
+    flex: 1,
+    padding: "16px",
+    background: "#F1F5F9",
+    color: "#475569",
+    border: "none",
+    borderRadius: "12px",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
 };
 
