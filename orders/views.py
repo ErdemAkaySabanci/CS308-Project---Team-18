@@ -6,6 +6,7 @@ from rest_framework.generics import ListAPIView
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils.crypto import get_random_string
+from django.conf import settings
 
 from cart.models import Cart
 from .models import Order, OrderItem
@@ -37,6 +38,11 @@ class CheckoutView(APIView):
         if cart.items.count() == 0:
             return Response({"error": "Cart is empty."}, status=400)
 
+        # Extract payment data from request
+        payment_data = request.data.get('payment', {})
+        card_number = payment_data.get('card_number', '')
+        card_last_4 = card_number[-4:] if len(card_number) >= 4 else ''
+
         # Order oluştur
         order = Order.objects.create(
             user=user,
@@ -44,7 +50,9 @@ class CheckoutView(APIView):
             total_price=cart.total_price,
             delivery_address=user.home_address,
             invoice_number=get_random_string(12),
-            payment_confirmed=True
+            payment_confirmed=True,
+            payment_method="Credit Card",
+            card_last_4=card_last_4
         )
 
         # OrderItem + stok düşme
@@ -56,7 +64,7 @@ class CheckoutView(APIView):
                 price=item.product.discounted_price
             )
 
-            # Stok azaltma
+        #Stok azaltma
             item.product.quantity_in_stock -= item.quantity
             # is_in_stock property olduğu için otomatik hesaplanır, set etmeye gerek yok
             item.product.save()
@@ -64,11 +72,38 @@ class CheckoutView(APIView):
         # Sepeti temizle
         cart.items.all().delete()
 
+        # Generate PDF invoice
+        from .invoice_generator import generate_invoice_pdf
+        from django.core.mail import EmailMessage
+        
+        try:
+            pdf_path = generate_invoice_pdf(order)
+            
+            # Save relative path (from media root) to order
+            relative_path = f'invoices/invoice_{order.invoice_number}.pdf'
+            order.invoice_file = relative_path
+            order.save()
+            
+            # Send email with PDF attachment
+            email = EmailMessage(
+                subject=f'Invoice for Order #{order.invoice_number}',
+                body=f'Dear {user.get_full_name() or user.username},\n\nThank you for your order! Please find your invoice attached.\n\nOrder Details:\n- Invoice Number: {order.invoice_number}\n- Total: {order.total_price} TL\n- Payment: Card ending in {order.card_last_4}\n\nBest regards,\nSport Store Team',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            email.attach_file(pdf_path)
+            email.send()
+            
+        except Exception as e:
+            # Log error but don't fail the order
+            print(f"Error generating/sending invoice: {e}")
+
         return Response(
             {
                 "message": "Order successfully created.",
                 "order_id": order.id,
                 "invoice_number": order.invoice_number,
+                "invoice_url": f"/api/orders/{order.id}/invoice/download/"
             },
             status=201
         )
@@ -167,3 +202,48 @@ class UpdateOrderStatusView(APIView):
             {"message": "Order status updated."},
             status=200
         )
+
+
+# ---------------------------------------------------------
+# 5) INVOICE DOWNLOAD
+# ---------------------------------------------------------
+class InvoiceDownloadView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, order_id):
+        from django.http import FileResponse, Http404
+        import os
+        
+        # Get order and verify ownership
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Check if invoice exists
+        if not order.invoice_file:
+            return Response(
+                {"error": "Invoice not found for this order."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get file path - handle both old and new path formats
+        invoice_name = str(order.invoice_file).replace('\\media\\', '').replace('/media/', '').lstrip('/\\')
+        file_path = os.path.join(settings.MEDIA_ROOT, invoice_name)
+        
+        if not os.path.exists(file_path):
+            return Response(
+                {"error": "Invoice file not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Return PDF file
+        try:
+            return FileResponse(
+                open(file_path, 'rb'),
+                content_type='application/pdf',
+                as_attachment=True,
+                filename=f'invoice_{order.invoice_number}.pdf'
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Error downloading invoice: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

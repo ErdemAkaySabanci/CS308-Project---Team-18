@@ -6,6 +6,7 @@ from .views import (
     OrderListCreateView,
     OrderDetailView,
     UpdateOrderStatusView,
+    InvoiceDownloadView,
 )
 
 urlpatterns = [
@@ -17,6 +18,9 @@ urlpatterns = [
 
     # Invoice
     path("invoice/<int:pk>/", InvoiceView.as_view(), name="invoice"),
+    
+    # Invoice Download
+    path("<int:order_id>/invoice/download/", InvoiceDownloadView.as_view(), name="invoice-download"),
 
     # REST: List + Create Orders
     path("", OrderListCreateView.as_view(), name="order-list-create"),
