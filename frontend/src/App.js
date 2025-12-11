@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-d
 
 // Auth
 import Login from "./components/Login";
-import Register from "./components/Register";
+import Register from "./pages/RegisterPage";
 import Dashboard from "./components/Dashboard";
 import { authService } from "./services/authService";
 
