@@ -58,8 +58,7 @@ class CheckoutView(APIView):
 
             # Stok azaltma
             item.product.quantity_in_stock -= item.quantity
-            if item.product.quantity_in_stock <= 0:
-                item.product.is_in_stock = False
+            # is_in_stock property olduğu için otomatik hesaplanır, set etmeye gerek yok
             item.product.save()
 
         # Sepeti temizle
@@ -109,10 +108,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return Order.objects.filter(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        """
-        Alternatif sipariş oluşturma endpoint (gerekiyorsa).
-        Çoğunlukla CheckoutView kullanılır.
-        """
         user = request.user
         cart = Cart.objects.filter(user=user).first()
 
@@ -134,14 +129,10 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 quantity=item.quantity,
                 price=item.product.price
             )
-
             item.product.quantity_in_stock -= item.quantity
-            if item.product.quantity_in_stock <= 0:
-                item.product.is_in_stock = False
             item.product.save()
 
         cart.items.all().delete()
-
         return Response(OrderSerializer(order).data, status=201)
 
 
@@ -164,7 +155,6 @@ class UpdateOrderStatusView(APIView):
 
     def patch(self, request, pk):
         order = get_object_or_404(Order, pk=pk)
-
         new_status = request.data.get("status")
 
         if new_status not in dict(Order.ORDER_STATUS):

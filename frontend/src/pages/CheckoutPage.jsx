@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { apiService } from "../services/apiService";
 import { cartService } from "../services/cartService";
 
-
 function CheckoutPage() {
   const [cart, setCart] = useState(null);
   const [user, setUser] = useState(null);
@@ -11,25 +10,26 @@ function CheckoutPage() {
   const [error, setError] = useState("");
   const [addressInput, setAddressInput] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
     loadPage();
   }, []);
 
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+  };
+
   const loadPage = async () => {
     try {
       setLoading(true);
-
-      // 1) User Info
       const userInfo = await apiService.get("/users/me/");
       setUser(userInfo);
       setAddressInput(userInfo.home_address || "");
-
-      // 2) Cart Info
       const cartData = await cartService.getCart();
       setCart(cartData);
-
     } catch (err) {
       console.error(err);
       setError("Failed to load checkout page.");
@@ -40,19 +40,18 @@ function CheckoutPage() {
 
   const saveAddress = async () => {
     if (!addressInput.trim()) {
-      alert("Please enter your delivery address.");
+      showToast("Please enter your delivery address.", "error");
       return;
     }
 
     try {
       setSavingAddress(true);
       await apiService.updateAddress(addressInput);
-      // Update local user state with new address
       setUser({ ...user, home_address: addressInput });
-      alert("Address saved successfully!");
+      showToast("Address saved successfully! ✓", "success");
     } catch (err) {
       console.error(err);
-      alert("Failed to save address. Please try again.");
+      showToast("Failed to save address. Please try again.", "error");
     } finally {
       setSavingAddress(false);
     }
@@ -60,193 +59,328 @@ function CheckoutPage() {
 
   const placeOrder = async () => {
     if (!user.home_address || user.home_address.trim() === "") {
-      alert("Please add and save your home address before checkout.");
+      showToast("Please add and save your address first.", "error");
       return;
     }
 
     try {
       await apiService.post("/orders/checkout/", {});
-      alert("Order created successfully! 🎉");
-      navigate("/orders");
+      showToast("Order created successfully! 🎉", "success");
+      setTimeout(() => navigate("/orders"), 1500);
     } catch (err) {
       console.error(err);
-      alert("Checkout failed. Please try again.");
+      showToast("Checkout failed. Please try again.", "error");
     }
   };
 
-  if (loading) return <div style={styles.center}>Loading checkout...</div>;
+  if (loading) {
+    return (
+      <div style={styles.center}>
+        <div style={styles.spinner}></div>
+        <p>Loading checkout...</p>
+      </div>
+    );
+  }
+  
   if (error) return <div style={styles.center}>{error}</div>;
 
   if (!cart || cart.items.length === 0) {
     return (
       <div style={styles.center}>
+        <span style={{ fontSize: '64px', marginBottom: '20px' }}>🛒</span>
         <h2>Your cart is empty.</h2>
-        <Link to="/" style={styles.link}>Go back to products</Link>
+        <Link to="/" style={styles.shopLink}>Start Shopping</Link>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={styles.title}>Checkout</h1>
+    <div style={styles.pageWrapper}>
+      {/* Toast Notification */}
+      {toast.show && (
+        <div style={{
+          ...styles.toast,
+          backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444'
+        }}>
+          <span style={styles.toastIcon}>
+            {toast.type === 'success' ? '✓' : '✕'}
+          </span>
+          <span>{toast.message}</span>
+        </div>
+      )}
 
-      {/* ADDRESS CARD */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>📍 Delivery Address</h2>
+      <div style={styles.page}>
+        <h1 style={styles.title}>🛒 Checkout</h1>
 
-        <div style={styles.addressBox}>
-          <textarea
-            value={addressInput}
-            onChange={(e) => setAddressInput(e.target.value)}
-            placeholder="Enter your full delivery address..."
-            style={styles.textarea}
-            rows={3}
-          />
+        {/* ADDRESS CARD */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>📍 Delivery Address</h2>
+
+          <div style={styles.addressBox}>
+            <textarea
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              placeholder="Enter your full delivery address..."
+              style={styles.textarea}
+              rows={3}
+            />
+            <button
+              onClick={saveAddress}
+              style={{
+                ...styles.saveButton,
+                opacity: savingAddress ? 0.7 : 1
+              }}
+              disabled={savingAddress}
+            >
+              {savingAddress ? "Saving..." : "💾 Save Address"}
+            </button>
+
+            {user.home_address && (
+              <p style={styles.savedText}>✅ Address saved</p>
+            )}
+          </div>
+        </div>
+
+        {/* ORDER SUMMARY CARD */}
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>📦 Order Summary</h2>
+
+          {cart.items.map((item) => (
+            <div key={item.id} style={styles.summaryRow}>
+              <span>{item.product_name || item.name} (x{item.quantity})</span>
+              <span style={styles.itemPrice}>{item.subtotal} TL</span>
+            </div>
+          ))}
+
+          <hr style={styles.divider} />
+
+          <div style={styles.totalRow}>
+            <span>Total</span>
+            <span style={styles.totalPrice}>{cart.total_price} TL</span>
+          </div>
+
           <button
-            onClick={saveAddress}
-            style={styles.saveButton}
-            disabled={savingAddress}
+            style={{
+              ...styles.checkoutButton,
+              opacity: user.home_address ? 1 : 0.5,
+              cursor: user.home_address ? "pointer" : "not-allowed"
+            }}
+            onClick={placeOrder}
+            disabled={!user.home_address}
           >
-            {savingAddress ? "Saving..." : "💾 Save Address"}
+            🛒 Confirm Order
           </button>
 
-          {user.home_address && (
-            <p style={styles.savedText}>✅ Address saved</p>
+          {!user.home_address && (
+            <p style={styles.warningText}>⚠️ Please save your address first</p>
           )}
         </div>
-      </div>
 
-      {/* ORDER SUMMARY CARD */}
-      <div style={styles.card}>
-        <h2 style={styles.sectionTitle}>📦 Order Summary</h2>
-
-        {cart.items.map((item) => (
-          <div key={item.id} style={styles.summaryRow}>
-            <span>{item.name} (x{item.quantity})</span>
-            <span>{item.subtotal} TL</span>
-          </div>
-        ))}
-
-        <hr style={styles.divider} />
-
-        <div style={{ ...styles.summaryRow, fontWeight: "700", fontSize: "18px" }}>
-          <span>Total</span>
-          <span>{cart.total_price} TL</span>
-        </div>
-
-        <button
-          style={{
-            ...styles.checkoutButton,
-            opacity: user.home_address ? 1 : 0.5,
-            cursor: user.home_address ? "pointer" : "not-allowed"
-          }}
-          onClick={placeOrder}
-          disabled={!user.home_address}
-        >
-          🛒 Confirm Order
-        </button>
-
-        {!user.home_address && (
-          <p style={styles.warningText}>⚠️ Please save your address first</p>
-        )}
+        <Link to="/cart" style={styles.backLink}>
+          ← Back to Cart
+        </Link>
       </div>
     </div>
   );
 }
 
 const styles = {
+  pageWrapper: {
+    minHeight: '100vh',
+    backgroundColor: '#F8FAFC',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+  },
   page: {
     maxWidth: "800px",
     margin: "0 auto",
-    padding: "32px 20px",
-    fontFamily: "Inter, sans-serif",
+    padding: "40px 24px",
   },
   title: {
     fontSize: "32px",
     fontWeight: 700,
-    marginBottom: "20px",
+    marginBottom: "28px",
+    color: '#1E293B',
   },
   card: {
-    background: "#fff",
-    padding: "24px",
-    borderRadius: "14px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+    background: "#FFFFFF",
+    padding: "28px",
+    borderRadius: "16px",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
     marginBottom: "24px",
   },
   sectionTitle: {
-    fontSize: "22px",
-    fontWeight: "600",
-    marginBottom: "16px",
+    fontSize: "20px",
+    fontWeight: "700",
+    marginBottom: "20px",
+    color: '#1E293B',
   },
   addressBox: {
-    background: "#F9FAFB",
-    padding: "16px",
-    borderRadius: "10px",
-    border: "1px solid #E5E7EB",
+    background: "#F8FAFC",
+    padding: "20px",
+    borderRadius: "12px",
+    border: "1px solid #E2E8F0",
   },
   textarea: {
     width: "100%",
-    padding: "12px",
+    padding: "14px",
     fontSize: "15px",
-    borderRadius: "8px",
-    border: "1px solid #ddd",
-    marginBottom: "12px",
+    borderRadius: "10px",
+    border: "1px solid #E2E8F0",
+    marginBottom: "14px",
     resize: "vertical",
     fontFamily: "inherit",
     boxSizing: "border-box",
+    transition: "border-color 0.2s ease",
   },
   saveButton: {
-    padding: "10px 20px",
-    background: "#10b981",
+    padding: "12px 24px",
+    background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
     color: "#fff",
     border: "none",
-    borderRadius: "8px",
-    fontSize: "14px",
+    borderRadius: "10px",
+    fontSize: "15px",
     fontWeight: 600,
     cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+    transition: "all 0.2s ease",
   },
   savedText: {
     color: "#059669",
-    marginTop: "10px",
+    marginTop: "12px",
     fontSize: "14px",
+    fontWeight: 500,
   },
   summaryRow: {
     display: "flex",
     justifyContent: "space-between",
-    padding: "8px 0",
+    padding: "12px 0",
     fontSize: "16px",
+    color: '#475569',
+    borderBottom: '1px solid #F1F5F9',
+  },
+  itemPrice: {
+    fontWeight: 600,
+    color: '#1E293B',
   },
   divider: {
-    margin: "16px 0",
-    borderColor: "#E5E7EB",
+    margin: "20px 0",
+    border: "none",
+    borderTop: "2px solid #F1F5F9",
+  },
+  totalRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "12px 0",
+    fontSize: "20px",
+    fontWeight: 700,
+    color: '#1E293B',
+  },
+  totalPrice: {
+    color: '#F97316',
+    fontSize: '24px',
   },
   checkoutButton: {
-    marginTop: "18px",
+    marginTop: "24px",
     width: "100%",
-    padding: "16px",
-    background: "#2D5FFF",
+    padding: "18px",
+    background: "linear-gradient(135deg, #3B82F6 0%, #1E3A8A 100%)",
     color: "#fff",
     border: "none",
-    borderRadius: "10px",
+    borderRadius: "12px",
     fontSize: "17px",
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: "pointer",
+    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
+    transition: "all 0.2s ease",
   },
   warningText: {
-    color: "#dc2626",
+    color: "#EF4444",
     textAlign: "center",
-    marginTop: "10px",
+    marginTop: "14px",
     fontSize: "14px",
+    fontWeight: 500,
   },
   center: {
     textAlign: "center",
-    marginTop: "20vh",
+    marginTop: "15vh",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '16px',
   },
-  link: {
-    color: "#2D5FFF",
+  spinner: {
+    width: '48px',
+    height: '48px',
+    border: '4px solid #E2E8F0',
+    borderTopColor: '#F97316',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  shopLink: {
+    display: 'inline-block',
+    padding: "14px 28px",
+    background: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
+    color: "#FFFFFF",
+    borderRadius: "12px",
     textDecoration: "none",
+    fontWeight: 700,
+    fontSize: '16px',
+  },
+  backLink: {
+    display: 'block',
+    textAlign: 'center',
+    color: '#3B82F6',
+    textDecoration: 'none',
     fontWeight: 600,
+    fontSize: '15px',
+    marginTop: '8px',
+  },
+
+  // Toast
+  toast: {
+    position: "fixed",
+    top: "100px",
+    right: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "16px 24px",
+    borderRadius: "12px",
+    color: "#FFFFFF",
+    fontWeight: 600,
+    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+    zIndex: 9999,
+    animation: "slideIn 0.3s ease",
+  },
+  toastIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    fontWeight: "bold",
   },
 };
+
+// Add animations
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default CheckoutPage;
