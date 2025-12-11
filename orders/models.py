@@ -22,6 +22,8 @@ class Order(models.Model):
 
     # --- YENİ EKLENEN ALANLAR (Fatura ve Ödeme İçin) ---
     payment_confirmed = models.BooleanField(default=False)
+    payment_method = models.CharField(max_length=50, default="Credit Card")
+    card_last_4 = models.CharField(max_length=4, blank=True)  # Last 4 digits only for security
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     invoice_file = models.FileField(upload_to='invoices/', null=True, blank=True)

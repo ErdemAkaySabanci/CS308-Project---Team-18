@@ -11,6 +11,17 @@ function CheckoutPage() {
   const [addressInput, setAddressInput] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [currentStep, setCurrentStep] = useState(1); // 1: Address, 2: Payment, 3: Summary
+
+  // Payment form state
+  const [paymentData, setPaymentData] = useState({
+    cardNumber: '',
+    cardName: '',
+    expiry: '',
+    cvv: ''
+  });
+  const [processingPayment, setProcessingPayment] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,14 +68,73 @@ function CheckoutPage() {
     }
   };
 
-  const placeOrder = async () => {
+  const goToPayment = () => {
     if (!user.home_address || user.home_address.trim() === "") {
       showToast("Please add and save your address first.", "error");
       return;
     }
+    setCurrentStep(2);
+  };
 
+  const processPayment = async () => {
+    // Validate payment data
+    if (!paymentData.cardNumber || paymentData.cardNumber.replace(/\s/g, '').length !== 16) {
+      showToast("Please enter a valid 16-digit card number.", "error");
+      return;
+    }
+    if (!paymentData.cardName.trim()) {
+      showToast("Please enter cardholder name.", "error");
+      return;
+    }
+    if (!paymentData.expiry.match(/^\d{2}\/\d{2}$/)) {
+      showToast("Please enter expiry in MM/YY format.", "error");
+      return;
+    }
+
+    // Validate month (01-12) and year (>= 25)
+    const [monthStr, yearStr] = paymentData.expiry.split('/');
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+
+    if (month < 1 || month > 12 || year < 25) {
+      showToast("Please enter valid card date.", "error");
+      return;
+    }
+
+    if (!paymentData.cvv || paymentData.cvv.length !== 3) {
+      showToast("Please enter a valid 3-digit CVV.", "error");
+      return;
+    }
+
+    // Mock payment processing
     try {
-      await apiService.post("/orders/checkout/", {});
+      setProcessingPayment(true);
+
+      // Simulate payment delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      showToast("Payment successful! ✓", "success");
+      setCurrentStep(3);
+    } catch (err) {
+      showToast("Payment failed. Please try again.", "error");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const placeOrder = async () => {
+    try {
+      // Include payment info in checkout
+      const checkoutData = {
+        payment: {
+          card_number: paymentData.cardNumber.replace(/\s/g, ''),
+          card_name: paymentData.cardName,
+          expiry: paymentData.expiry,
+          cvv: paymentData.cvv
+        }
+      };
+
+      await apiService.post("/orders/checkout/", checkoutData);
       showToast("Order created successfully! 🎉", "success");
       setTimeout(() => navigate("/orders"), 1500);
     } catch (err) {
@@ -81,7 +151,7 @@ function CheckoutPage() {
       </div>
     );
   }
-  
+
   if (error) return <div style={styles.center}>{error}</div>;
 
   if (!cart || cart.items.length === 0) {
@@ -112,69 +182,210 @@ function CheckoutPage() {
       <div style={styles.page}>
         <h1 style={styles.title}>🛒 Checkout</h1>
 
-        {/* ADDRESS CARD */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>📍 Delivery Address</h2>
+        {/* STEP INDICATOR */}
+        <div style={styles.stepIndicator}>
+          <div style={currentStep >= 1 ? styles.stepActive : styles.step}>
+            <span style={styles.stepNumber}>1</span>
+            <span style={styles.stepLabel}>Address</span>
+          </div>
+          <div style={styles.stepLine}></div>
+          <div style={currentStep >= 2 ? styles.stepActive : styles.step}>
+            <span style={styles.stepNumber}>2</span>
+            <span style={styles.stepLabel}>Payment</span>
+          </div>
+          <div style={styles.stepLine}></div>
+          <div style={currentStep >= 3 ? styles.stepActive : styles.step}>
+            <span style={styles.stepNumber}>3</span>
+            <span style={styles.stepLabel}>Confirm</span>
+          </div>
+        </div>
 
-          <div style={styles.addressBox}>
-            <textarea
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-              placeholder="Enter your full delivery address..."
-              style={styles.textarea}
-              rows={3}
-            />
+        {/* STEP 1: ADDRESS */}
+        {currentStep === 1 && (
+          <>
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>📍 Delivery Address</h2>
+
+              <div style={styles.addressBox}>
+                <textarea
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  placeholder="Enter your full delivery address..."
+                  style={styles.textarea}
+                  rows={3}
+                />
+                <button
+                  onClick={saveAddress}
+                  style={{
+                    ...styles.saveButton,
+                    opacity: savingAddress ? 0.7 : 1
+                  }}
+                  disabled={savingAddress}
+                >
+                  {savingAddress ? "Saving..." : "💾 Save Address"}
+                </button>
+
+                {user.home_address && (
+                  <p style={styles.savedText}>✅ Address saved</p>
+                )}
+              </div>
+            </div>
+
             <button
-              onClick={saveAddress}
               style={{
-                ...styles.saveButton,
-                opacity: savingAddress ? 0.7 : 1
+                ...styles.continueButton,
+                opacity: user.home_address ? 1 : 0.5,
+                cursor: user.home_address ? "pointer" : "not-allowed"
               }}
-              disabled={savingAddress}
+              onClick={goToPayment}
+              disabled={!user.home_address}
             >
-              {savingAddress ? "Saving..." : "💾 Save Address"}
+              Continue to Payment →
             </button>
 
-            {user.home_address && (
-              <p style={styles.savedText}>✅ Address saved</p>
+            {!user.home_address && (
+              <p style={styles.warningText}>⚠️ Please save your address first</p>
             )}
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* ORDER SUMMARY CARD */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>📦 Order Summary</h2>
+        {/* STEP 2: PAYMENT */}
+        {currentStep === 2 && (
+          <>
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>💳 Payment Information</h2>
 
-          {cart.items.map((item) => (
-            <div key={item.id} style={styles.summaryRow}>
-              <span>{item.product_name || item.name} (x{item.quantity})</span>
-              <span style={styles.itemPrice}>{item.subtotal} TL</span>
+              <div style={styles.paymentForm}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Card Number</label>
+                  <input
+                    type="text"
+                    placeholder="1234 5678 9012 3456"
+                    value={paymentData.cardNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+                      const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                      setPaymentData({ ...paymentData, cardNumber: formatted });
+                    }}
+                    maxLength={19}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Cardholder Name</label>
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    value={paymentData.cardName}
+                    onChange={(e) => setPaymentData({ ...paymentData, cardName: e.target.value })}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.formRow}>
+                  <div style={{ ...styles.formGroup, flex: 1 }}>
+                    <label style={styles.label}>Expiry Date</label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      value={paymentData.expiry}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, '');
+
+                        // Limit month to 12
+                        if (value.length >= 2) {
+                          value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                        }
+
+                        setPaymentData({ ...paymentData, expiry: value });
+                      }}
+                      maxLength={5}
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div style={{ ...styles.formGroup, flex: 1 }}>
+                    <label style={styles.label}>CVV</label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      value={paymentData.cvv}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        setPaymentData({ ...paymentData, cvv: value });
+                      }}
+                      maxLength={3}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
 
-          <hr style={styles.divider} />
+            <div style={styles.buttonRow}>
+              <button
+                style={styles.backButton}
+                onClick={() => setCurrentStep(1)}
+              >
+                ← Back
+              </button>
+              <button
+                style={{
+                  ...styles.continueButton,
+                  opacity: processingPayment ? 0.7 : 1
+                }}
+                onClick={processPayment}
+                disabled={processingPayment}
+              >
+                {processingPayment ? "Processing..." : "Confirm Payment →"}
+              </button>
+            </div>
+          </>
+        )}
 
-          <div style={styles.totalRow}>
-            <span>Total</span>
-            <span style={styles.totalPrice}>{cart.total_price} TL</span>
-          </div>
+        {/* STEP 3: ORDER SUMMARY */}
+        {currentStep === 3 && (
+          <>
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>📦 Order Summary</h2>
 
-          <button
-            style={{
-              ...styles.checkoutButton,
-              opacity: user.home_address ? 1 : 0.5,
-              cursor: user.home_address ? "pointer" : "not-allowed"
-            }}
-            onClick={placeOrder}
-            disabled={!user.home_address}
-          >
-            🛒 Confirm Order
-          </button>
+              {cart.items.map((item) => (
+                <div key={item.id} style={styles.summaryRow}>
+                  <span>{item.product_name || item.name} (x{item.quantity})</span>
+                  <span style={styles.itemPrice}>{item.subtotal} TL</span>
+                </div>
+              ))}
 
-          {!user.home_address && (
-            <p style={styles.warningText}>⚠️ Please save your address first</p>
-          )}
-        </div>
+              <hr style={styles.divider} />
+
+              <div style={styles.totalRow}>
+                <span>Total</span>
+                <span style={styles.totalPrice}>{cart.total_price} TL</span>
+              </div>
+
+              <div style={styles.infoBox}>
+                <p><strong>Delivery Address:</strong> {user.home_address}</p>
+                <p><strong>Payment Method:</strong> Card ending in {paymentData.cardNumber.slice(-4)}</p>
+              </div>
+            </div>
+
+            <div style={styles.buttonRow}>
+              <button
+                style={styles.backButton}
+                onClick={() => setCurrentStep(2)}
+              >
+                ← Back
+              </button>
+              <button
+                style={styles.checkoutButton}
+                onClick={placeOrder}
+              >
+                🛒 Place Order
+              </button>
+            </div>
+          </>
+        )}
 
         <Link to="/cart" style={styles.backLink}>
           ← Back to Cart
@@ -361,6 +572,125 @@ const styles = {
     borderRadius: "50%",
     backgroundColor: "rgba(255,255,255,0.2)",
     fontWeight: "bold",
+  },
+
+  // Step Indicator
+  stepIndicator: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "40px",
+    padding: "20px",
+  },
+  step: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    opacity: 0.4,
+  },
+  stepActive: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    opacity: 1,
+  },
+  stepNumber: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    backgroundColor: "#3B82F6",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "700",
+    fontSize: "16px",
+  },
+  stepLabel: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  stepLine: {
+    width: "80px",
+    height: "2px",
+    backgroundColor: "#E2E8F0",
+    margin: "0 16px",
+  },
+
+  // Payment Form
+  paymentForm: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  formRow: {
+    display: "flex",
+    gap: "16px",
+  },
+  label: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#475569",
+  },
+  input: {
+    padding: "14px",
+    fontSize: "15px",
+    borderRadius: "10px",
+    border: "1px solid #E2E8F0",
+    fontFamily: "inherit",
+    transition: "border-color 0.2s ease",
+    outline: "none",
+  },
+
+  // Buttons
+  continueButton: {
+    width: "100%",
+    padding: "16px",
+    background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "12px",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
+    transition: "all 0.2s ease",
+    marginTop: "16px",
+  },
+  buttonRow: {
+    display: "flex",
+    gap: "16px",
+    margin: "24px 0",
+  },
+  backButton: {
+    flex: 1,
+    padding: "16px",
+    background: "#F1F5F9",
+    color: "#475569",
+    border: "none",
+    borderRadius: "12px",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+
+  // Info Box
+  infoBox: {
+    backgroundColor: "#F8FAFC",
+    padding: "16px",
+    borderRadius: "10px",
+    marginTop: "20px",
+    fontSize: "14px",
+    lineHeight: "1.6",
   },
 };
 

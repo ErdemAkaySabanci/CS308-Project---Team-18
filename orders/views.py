@@ -37,6 +37,11 @@ class CheckoutView(APIView):
         if cart.items.count() == 0:
             return Response({"error": "Cart is empty."}, status=400)
 
+        # Extract payment data from request
+        payment_data = request.data.get('payment', {})
+        card_number = payment_data.get('card_number', '')
+        card_last_4 = card_number[-4:] if len(card_number) >= 4 else ''
+
         # Order oluştur
         order = Order.objects.create(
             user=user,
@@ -44,7 +49,9 @@ class CheckoutView(APIView):
             total_price=cart.total_price,
             delivery_address=user.home_address,
             invoice_number=get_random_string(12),
-            payment_confirmed=True
+            payment_confirmed=True,
+            payment_method="Credit Card",
+            card_last_4=card_last_4
         )
 
         # OrderItem + stok düşme
