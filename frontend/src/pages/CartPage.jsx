@@ -73,11 +73,11 @@ const CartPage = () => {
             </div>
         );
     }
-    
+
     if (error) return <div style={styles.centerContainer}>{error}</div>;
 
     const cartItems = cart?.items || [];
-    
+
     if (!cart || cartItems.length === 0) {
         return (
             <div style={styles.centerContainer}>
@@ -106,23 +106,38 @@ const CartPage = () => {
                     {cartItems.map(item => {
                         const price = Number(item.product_price || item.price || 0);
                         const subtotal = Number(item.subtotal) || (item.quantity * price);
-                        
+
                         return (
                             <div key={item.id} style={styles.itemCard}>
+                                {/* Product Image */}
+                                <div style={styles.itemImage}>
+                                    {item.product_image || item.image ? (
+                                        <img
+                                            src={item.product_image || item.image}
+                                            alt={item.product_name || item.name}
+                                            style={styles.thumbnail}
+                                        />
+                                    ) : (
+                                        <div style={styles.placeholderImage}>
+                                            🏃
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div style={styles.itemDetails}>
                                     <h3 style={styles.itemName}>{item.product_name || item.name}</h3>
                                     <p style={styles.itemPrice}>{price} TL</p>
                                 </div>
 
                                 <div style={styles.quantityControls}>
-                                    <button 
+                                    <button
                                         style={styles.qtyButton}
                                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                     >
                                         -
                                     </button>
                                     <span style={styles.qtyValue}>{item.quantity}</span>
-                                    <button 
+                                    <button
                                         style={styles.qtyButton}
                                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                     >
@@ -134,8 +149,8 @@ const CartPage = () => {
                                     {subtotal} TL
                                 </div>
 
-                                <button 
-                                    onClick={() => removeItem(item.id)} 
+                                <button
+                                    onClick={() => removeItem(item.id)}
                                     style={styles.removeButton}
                                 >
                                     🗑️
@@ -177,13 +192,35 @@ const styles = {
         padding: "20px",
         borderRadius: "12px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        gap: "16px",
+    },
+    itemImage: {
+        width: "80px",
+        height: "80px",
+        flexShrink: 0,
+    },
+    thumbnail: {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        borderRadius: "8px",
+    },
+    placeholderImage: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F3F4F6",
+        borderRadius: "8px",
+        fontSize: "32px",
     },
     itemDetails: { flex: 1 },
     itemName: { margin: 0, fontSize: "18px", fontWeight: 600 },
     itemPrice: { margin: "4px 0", color: "#777" },
-    quantityControls: { 
-        display: "flex", 
-        alignItems: "center", 
+    quantityControls: {
+        display: "flex",
+        alignItems: "center",
         gap: "12px",
         backgroundColor: "#f5f5f5",
         padding: "8px 12px",
