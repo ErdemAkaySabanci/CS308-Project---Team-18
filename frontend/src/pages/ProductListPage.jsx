@@ -47,7 +47,7 @@ function ProductListPage() {
   const handleAddToCart = async (e, product) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!product.is_in_stock) {
       showToast('Product is out of stock', 'error');
       return;
@@ -77,6 +77,7 @@ function ProductListPage() {
     if (sortOption === "price_high") return b.price - a.price;
     if (sortOption === "name_az") return a.name.localeCompare(b.name);
     if (sortOption === "name_za") return b.name.localeCompare(a.name);
+    if (sortOption === "popularity") return (b.popularity || 0) - (a.popularity || 0);
     return 0;
   });
 
@@ -147,6 +148,7 @@ function ProductListPage() {
               style={styles.sortSelect}
             >
               <option value="">Sort By</option>
+              <option value="popularity">🔥 Most Popular</option>
               <option value="price_low">Price: Low → High</option>
               <option value="price_high">Price: High → Low</option>
               <option value="name_az">Name: A → Z</option>
@@ -211,7 +213,7 @@ function ProductListPage() {
                   <div style={styles.cardBody}>
                     <span style={styles.categoryTag}>{p.category_name}</span>
                     <h3 style={styles.productName}>{p.name}</h3>
-                    
+
                     <div style={styles.priceSection}>
                       <span style={styles.currentPrice}>
                         {p.discounted_price || p.price} TL
@@ -300,7 +302,7 @@ const styles = {
     fontSize: "15px",
     fontWeight: "600",
   },
-  
+
   // Hero - Blue to Orange gradient
   hero: {
     background: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 40%, #F97316 100%)",

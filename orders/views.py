@@ -64,8 +64,9 @@ class CheckoutView(APIView):
                 price=item.product.discounted_price
             )
 
-        #Stok azaltma
+        #Stok azaltma ve popularity artırma
             item.product.quantity_in_stock -= item.quantity
+            item.product.popularity += item.quantity  # Satış sayısına göre popularity artır
             # is_in_stock property olduğu için otomatik hesaplanır, set etmeye gerek yok
             item.product.save()
 
