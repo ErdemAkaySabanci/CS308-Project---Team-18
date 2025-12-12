@@ -3,7 +3,6 @@ from django.conf import settings
 from products.models import Product
 from decimal import Decimal
 
-
 class Order(models.Model):
     ORDER_STATUS = (
         ('processing', 'Processing'),
@@ -20,8 +19,15 @@ class Order(models.Model):
     delivery_address = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # --- YENİ EKLENEN ALANLAR (Fatura ve Ödeme İçin) ---
     payment_confirmed = models.BooleanField(default=False)
+    payment_method = models.CharField(max_length=50, default="Credit Card")
+    card_last_4 = models.CharField(max_length=4, blank=True)  # Last 4 digits only for security
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    invoice_file = models.FileField(upload_to='invoices/', null=True, blank=True)
+    # ---------------------------------------------------
 
     class Meta:
         ordering = ['-created_at']
@@ -31,12 +37,10 @@ class Order(models.Model):
 
     @property
     def can_be_cancelled(self):
-        """Sipariş iptal edilebilir mi?"""
         return self.status == 'processing'
 
     @property
     def can_be_refunded(self):
-        """İade edilebilir mi?"""
         return self.status == 'delivered'
 
 
@@ -44,7 +48,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Satın alma anındaki fiyat
+    price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"{self.quantity}x {self.product.name}"
@@ -68,8 +72,7 @@ class Refund(models.Model):
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
-    processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
-                                     related_name='processed_refunds')
+    processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='processed_refunds')
 
     def __str__(self):
         return f"Refund for Order #{self.order.id}"

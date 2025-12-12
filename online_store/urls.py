@@ -6,10 +6,11 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('products.urls')),      # Existing products API
-    path('api/users/', include('users.urls')),   # New JWT authentication API
-    path('api/cart/', include('cart.urls')),     # Cart API
-    path('api/orders/', include('orders.urls')), # Orders API
+    path('api/', include('products.urls')),
+    path('api/users/', include('users.urls')),
+    path('api/cart/', include('cart.urls')),
+    path('api/orders/', include('orders.urls')),
+    path('api/reviews/', include('reviews.urls')),  # Reviews API
 ]
 
 # Media files for development

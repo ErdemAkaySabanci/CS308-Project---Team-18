@@ -8,11 +8,12 @@ export const cartService = {
 
     // Add item to cart
     addToCart: async (productId, quantity = 1) => {
-        return await apiService.post('/cart/', {
-            product_id: productId,
-            quantity: quantity
-        });
-    },
+    return await apiService.post('/cart/', {
+        product_id: productId,
+        quantity: quantity,
+    });
+},
+
 
     // Update item quantity
     updateItem: async (itemId, quantity) => {

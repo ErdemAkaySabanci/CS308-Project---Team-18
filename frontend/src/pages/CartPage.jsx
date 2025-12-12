@@ -1,377 +1,323 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cartService } from '../services/cartService';
+import { apiService } from '../services/apiService';
+import { authService } from '../services/authService';
 
 const CartPage = () => {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState({ show: false, message: '', type: '' });
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const isLoggedIn = authService.isAuthenticated();
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchCart();
+        loadCart();
     }, []);
 
-    const fetchCart = async () => {
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+    };
+
+    const loadCart = async () => {
         try {
             setLoading(true);
-            const data = await cartService.getCart();
-            if (data) {
-                setCart(data);
-            }
+            const data = await apiService.getCart();
+            console.log('Cart data:', data);
+            setCart(data);
         } catch (err) {
-            console.error('Error fetching cart:', err);
-            setError('Failed to load cart. Please try again.');
+            console.error('Load cart error:', err);
+            setError("Failed to load cart.");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleUpdateQuantity = async (itemId, newQuantity) => {
-        if (newQuantity < 1) return;
+    const updateQuantity = async (itemId, newQty) => {
+        if (newQty < 1) {
+            await removeItem(itemId);
+            return;
+        }
 
         try {
-            const updatedCart = await cartService.updateItem(itemId, newQuantity);
-            if (updatedCart && !updatedCart.error) {
-                setCart(updatedCart);
+            const result = await apiService.updateCartItem(itemId, newQty);
+            if (result && result.error) {
+                showToast(result.error, 'error');
             } else {
-                alert(updatedCart.error || 'Failed to update quantity');
+                setCart(result);
             }
         } catch (err) {
             console.error('Update error:', err);
-            alert('Failed to update quantity');
+            showToast('Could not update quantity', 'error');
+            await loadCart();
         }
     };
 
-    const handleRemoveItem = async (itemId) => {
-        if (!window.confirm('Are you sure you want to remove this item?')) return;
+    const removeItem = async (itemId) => {
+        
 
         try {
-            const updatedCart = await cartService.removeItem(itemId);
-            if (updatedCart) {
-                setCart(updatedCart);
-            }
+            const result = await apiService.deleteCartItem(itemId);
+            setCart(result);
+            showToast('Item removed', 'success');
         } catch (err) {
-            console.error('Remove error:', err);
-            alert('Failed to remove item');
+            console.error('Delete error:', err);
+            showToast('Could not remove item', 'error');
         }
+    };
+
+    const goToCheckout = () => {
+        if (!isLoggedIn) {
+            setShowLoginModal(true);
+            return;
+        }
+        navigate("/checkout");
     };
 
     if (loading) {
         return (
             <div style={styles.centerContainer}>
-                <div style={styles.loadingText}>Loading cart...</div>
+                <p>Loading cart...</p>
             </div>
         );
     }
 
-    if (error) {
-        return (
-            <div style={styles.centerContainer}>
-                <div style={styles.errorText}>{error}</div>
-                <button onClick={fetchCart} style={styles.retryButton}>Retry</button>
-            </div>
-        );
-    }
+    if (error) return <div style={styles.centerContainer}>{error}</div>;
 
-    if (!cart || !cart.items || cart.items.length === 0) {
+    const cartItems = cart?.items || [];
+
+    if (!cart || cartItems.length === 0) {
         return (
             <div style={styles.centerContainer}>
-                <h2 style={styles.emptyTitle}>Your cart is empty</h2>
-                <p style={styles.emptySubtitle}>Looks like you haven't added any items yet.</p>
-                <Link to="/" style={styles.startShoppingButton}>
-                    Start Shopping
-                </Link>
+                <h2>Your cart is empty</h2>
+                <Link to="/" style={styles.startShoppingButton}>Start Shopping</Link>
             </div>
         );
     }
 
     return (
         <div style={styles.container}>
+            {/* Toast */}
+            {toast.show && (
+                <div style={{
+                    ...styles.toast,
+                    backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444'
+                }}>
+                    {toast.message}
+                </div>
+            )}
+
             <h1 style={styles.title}>Shopping Cart</h1>
 
             <div style={styles.content}>
                 <div style={styles.itemsList}>
-                    {cart.items.map((item) => (
-                        <div key={item.id} style={styles.itemCard}>
-                            <div style={styles.itemImageContainer}>
-                                {item.image ? (
-                                    <img
-                                        src={item.image}
-                                        alt={item.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                ) : (
-                                    <div style={styles.imagePlaceholder}>
-                                        {item.name ? item.name.charAt(0) : 'P'}
-                                    </div>
-                                )}
-                            </div>
+                    {cartItems.map(item => {
+                        const price = Number(item.product_price || item.price || 0);
+                        const subtotal = Number(item.subtotal) || (item.quantity * price);
 
-                            <div style={styles.itemDetails}>
-                                <h3 style={styles.itemName}>{item.name}</h3>
-                                <p style={styles.itemPrice}>${item.price}</p>
-                            </div>
+                        return (
+                            <div key={item.id} style={styles.itemCard}>
+                                {/* Product Image */}
+                                <div style={styles.itemImage}>
+                                    {item.product_image || item.image ? (
+                                        <img
+                                            src={item.product_image || item.image}
+                                            alt={item.product_name || item.name}
+                                            style={styles.thumbnail}
+                                        />
+                                    ) : (
+                                        <div style={styles.placeholderImage}>
+                                            🏃
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div style={styles.quantityControls}>
+                                <div style={styles.itemDetails}>
+                                    <h3 style={styles.itemName}>{item.product_name || item.name}</h3>
+                                    <p style={styles.itemPrice}>{price} TL</p>
+                                </div>
+
+                                <div style={styles.quantityControls}>
+                                    <button
+                                        style={styles.qtyButton}
+                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    >
+                                        -
+                                    </button>
+                                    <span style={styles.qtyValue}>{item.quantity}</span>
+                                    <button
+                                        style={styles.qtyButton}
+                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+
+                                <div style={styles.itemTotal}>
+                                    {subtotal} TL
+                                </div>
+
                                 <button
-                                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                    style={styles.quantityButton}
-                                    disabled={item.quantity <= 1}
+                                    onClick={() => removeItem(item.id)}
+                                    style={styles.removeButton}
                                 >
-                                    -
-                                </button>
-                                <span style={styles.quantity}>{item.quantity}</span>
-                                <button
-                                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                    style={styles.quantityButton}
-                                >
-                                    +
+                                    🗑️
                                 </button>
                             </div>
-
-                            <div style={styles.itemTotal}>
-                                ${(item.price * item.quantity).toFixed(2)}
-                            </div>
-
-                            <button
-                                onClick={() => handleRemoveItem(item.id)}
-                                style={styles.removeButton}
-                                aria-label="Remove item"
-                            >
-                                🗑️
-                            </button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
+                {/* SUMMARY */}
                 <div style={styles.summary}>
-                    <h2 style={styles.summaryTitle}>Order Summary</h2>
+                    <h2>Order Summary</h2>
 
                     <div style={styles.summaryRow}>
-                        <span>Subtotal</span>
-                        <span>${cart.total_price}</span>
-                    </div>
-
-                    <div style={styles.divider}></div>
-
-                    <div style={styles.summaryRowTotal}>
                         <span>Total</span>
-                        <span>${cart.total_price}</span>
+                        <strong>{cart.total_price || 0} TL</strong>
                     </div>
 
-                    <button
-                        style={styles.checkoutButton}
-                        onClick={() => navigate('/checkout')}
-                    >
+                    <button style={styles.checkoutButton} onClick={goToCheckout}>
                         Proceed to Checkout
                     </button>
                 </div>
             </div>
+
+            {/* Login Required Modal */}
+            {showLoginModal && (
+                <div style={styles.loginModalOverlay} onClick={() => setShowLoginModal(false)}>
+                    <div style={styles.loginModal} onClick={(e) => e.stopPropagation()}>
+                        <div style={styles.modalIcon}>🔐</div>
+                        <h2 style={styles.modalTitle}>Sign In Required</h2>
+                        <p style={styles.modalText}>Please sign in to proceed with checkout and complete your purchase.</p>
+                        <div style={styles.modalButtons}>
+                            <button style={styles.modalButtonSecondary} onClick={() => { setShowLoginModal(false); navigate("/"); }}>Continue Shopping</button>
+                            <Link to="/login" style={styles.modalButtonPrimary}>Sign In</Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 const styles = {
-    container: {
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        fontFamily: "'Inter', sans-serif",
-        color: '#1A1A1A',
-    },
-    centerContainer: {
-        minHeight: '60vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-    },
-    title: {
-        fontSize: '32px',
-        fontWeight: '700',
-        marginBottom: '32px',
-    },
-    content: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 380px',
-        gap: '40px',
-        alignItems: 'start',
-    },
-    itemsList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-    },
+    container: { maxWidth: "1200px", margin: "0 auto", padding: "40px" },
+    centerContainer: { textAlign: "center", marginTop: "20vh" },
+    title: { fontSize: "32px", fontWeight: "700", marginBottom: "24px" },
+    content: { display: "grid", gridTemplateColumns: "1fr 350px", gap: "40px" },
+    itemsList: { display: "flex", flexDirection: "column", gap: "16px" },
     itemCard: {
-        display: 'flex',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        padding: '20px',
-        borderRadius: '16px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-        border: '1px solid #E4E7EC',
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: "#fff",
+        padding: "20px",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        gap: "16px",
     },
-    itemImageContainer: {
-        width: '80px',
-        height: '80px',
-        borderRadius: '8px',
-        backgroundColor: '#F2F4F7',
-        marginRight: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+    itemImage: {
+        width: "80px",
+        height: "80px",
+        flexShrink: 0,
     },
-    imagePlaceholder: {
-        fontSize: '24px',
-        fontWeight: '600',
-        color: '#98A2B3',
+    thumbnail: {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        borderRadius: "8px",
     },
-    itemDetails: {
-        flex: 1,
+    placeholderImage: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F3F4F6",
+        borderRadius: "8px",
+        fontSize: "32px",
     },
-    itemName: {
-        fontSize: '18px',
-        fontWeight: '600',
-        margin: '0 0 8px 0',
-    },
-    itemPrice: {
-        fontSize: '16px',
-        color: '#667085',
-        margin: 0,
-    },
+    itemDetails: { flex: 1 },
+    itemName: { margin: 0, fontSize: "18px", fontWeight: 600 },
+    itemPrice: { margin: "4px 0", color: "#777" },
     quantityControls: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginRight: '32px',
-        backgroundColor: '#F9FAFB',
-        padding: '4px',
-        borderRadius: '8px',
-        border: '1px solid #EAECF0',
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        backgroundColor: "#f5f5f5",
+        padding: "8px 12px",
+        borderRadius: "8px",
     },
-    quantityButton: {
-        width: '28px',
-        height: '28px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: 'none',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        color: '#1A1A1A',
-        fontWeight: '600',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+    qtyButton: {
+        width: "32px",
+        height: "32px",
+        border: "1px solid #ddd",
+        borderRadius: "6px",
+        background: "#fff",
+        cursor: "pointer",
+        fontSize: "18px",
+        fontWeight: "600",
     },
-    quantity: {
-        fontSize: '16px',
-        fontWeight: '500',
-        minWidth: '20px',
-        textAlign: 'center',
+    qtyValue: {
+        fontSize: "16px",
+        fontWeight: "600",
+        minWidth: "24px",
+        textAlign: "center",
     },
-    itemTotal: {
-        fontSize: '18px',
-        fontWeight: '600',
-        marginRight: '24px',
-        minWidth: '80px',
-        textAlign: 'right',
-    },
-    removeButton: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: '20px',
-        color: '#F04438',
-        padding: '8px',
-        borderRadius: '8px',
-        transition: 'background-color 0.2s',
-    },
+    itemTotal: { fontSize: "18px", fontWeight: 600, color: "#F97316", minWidth: "100px", textAlign: "right" },
+    removeButton: { border: "none", background: "none", cursor: "pointer", fontSize: "20px" },
     summary: {
-        backgroundColor: '#FFFFFF',
-        padding: '32px',
-        borderRadius: '16px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-        border: '1px solid #E4E7EC',
-    },
-    summaryTitle: {
-        fontSize: '24px',
-        fontWeight: '700',
-        marginBottom: '24px',
-        marginTop: 0,
+        background: "#fff",
+        padding: "24px",
+        borderRadius: "12px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        height: "fit-content",
     },
     summaryRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginBottom: '16px',
-        color: '#667085',
-        fontSize: '16px',
-    },
-    divider: {
-        height: '1px',
-        backgroundColor: '#EAECF0',
-        margin: '24px 0',
-    },
-    summaryRowTotal: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginBottom: '32px',
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1A1A1A',
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "20px",
+        fontSize: "18px",
     },
     checkoutButton: {
-        width: '100%',
-        padding: '16px',
-        backgroundColor: '#2D5FFF', // Primary
-        color: '#FFFFFF',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '16px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        boxShadow: '0 4px 12px rgba(45, 95, 255, 0.2)',
-    },
-    emptyTitle: {
-        fontSize: '24px',
-        fontWeight: '700',
-        marginBottom: '12px',
-    },
-    emptySubtitle: {
-        fontSize: '16px',
-        color: '#667085',
-        marginBottom: '32px',
+        width: "100%",
+        padding: "14px",
+        background: "#2D5FFF",
+        color: "#fff",
+        border: "none",
+        borderRadius: "10px",
+        fontSize: "18px",
+        cursor: "pointer",
     },
     startShoppingButton: {
-        display: 'inline-block',
-        padding: '12px 24px',
-        backgroundColor: '#2D5FFF',
-        color: '#FFFFFF',
-        textDecoration: 'none',
-        borderRadius: '8px',
-        fontWeight: '600',
+        padding: "12px 20px",
+        background: "#2D5FFF",
+        color: "#fff",
+        borderRadius: "10px",
+        textDecoration: "none",
+        fontWeight: 600,
     },
-    loadingText: {
-        fontSize: '18px',
-        color: '#667085',
+    toast: {
+        position: "fixed",
+        top: "100px",
+        right: "24px",
+        padding: "16px 24px",
+        borderRadius: "12px",
+        color: "#fff",
+        fontWeight: "600",
+        zIndex: 9999,
     },
-    errorText: {
-        color: '#F04438',
-        marginBottom: '16px',
-    },
-    retryButton: {
-        padding: '8px 16px',
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #D0D5DD',
-        borderRadius: '6px',
-        cursor: 'pointer',
-    },
+    loginModalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+    loginModal: { backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", maxWidth: "420px", width: "90%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" },
+    modalIcon: { fontSize: "64px", marginBottom: "20px" },
+    modalTitle: { fontSize: "24px", fontWeight: "700", color: "#1E293B", margin: "0 0 12px 0" },
+    modalText: { fontSize: "16px", color: "#64748B", margin: "0 0 32px 0", lineHeight: "1.6" },
+    modalButtons: { display: "flex", gap: "16px" },
+    modalButtonPrimary: { flex: 1, padding: "16px", backgroundColor: "#FF7A00", color: "#FFFFFF", border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" },
+    modalButtonSecondary: { flex: 1, padding: "16px", backgroundColor: "transparent", color: "#64748B", border: "2px solid #E2E8F0", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: "pointer" },
 };
-
-// Responsive styles would typically be handled with media queries in CSS
-// For inline styles, we can't easily do media queries, but the grid layout helps.
-// A real implementation would move these to a CSS file or styled-components.
 
 export default CartPage;

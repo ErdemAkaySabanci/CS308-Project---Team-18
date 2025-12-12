@@ -1,3 +1,4 @@
+/*
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,29 +8,32 @@ const CategoryListPage = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/api/categories/');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch categories');
-                }
-                const data = await response.json();
-                setCategories(data);
-                setLoading(false);
-            } catch (err) {
-                setError('Error loading categories. Please try again later.');
-                setLoading(false);
-            }
-        };
-
-        fetchCategories();
-    }, []);
+    
 
     const handleCategoryClick = (categoryId) => {
+         navigate(`/products?category=${categoryId}`);
         // Currently no action as requested
         console.log(`Category clicked: ${categoryId}`);
+    };useEffect(() => {
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/categories/');
+            if (!response.ok) {
+                throw new Error('Failed to fetch categories');
+            }
+            const data = await response.json();
+
+            setCategories(data.results || data);  // <-- FIX HERE
+            setLoading(false);
+        } catch (err) {
+            setError('Error loading categories. Please try again later.');
+            setLoading(false);
+        }
     };
+
+    fetchCategories();
+}, []);
+
 
     if (loading) {
         return (
@@ -165,3 +169,4 @@ const styles = {
 };
 
 export default CategoryListPage;
+*/

@@ -9,6 +9,9 @@ from .models import CustomUser
 import re
 from cart.utils import merge_cart
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserSerializer
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -140,20 +143,36 @@ def register_view(request):
         )
 
     # ============================================
-    # 6. PASSWORD STRENGTH VALIDATION (OPTIONAL)
+    # 6. PASSWORD STRENGTH VALIDATION
     # ============================================
-    # Uncomment these if you want stronger password requirements
-    # if not any(char.isdigit() for char in password):
-    #     return Response(
-    #         {'error': 'Password must contain at least one number'},
-    #         status=status.HTTP_400_BAD_REQUEST
-    #     )
-    #
-    # if not any(char.isupper() for char in password):
-    #     return Response(
-    #         {'error': 'Password must contain at least one uppercase letter'},
-    #         status=status.HTTP_400_BAD_REQUEST
-    #     )
+    # At least one number
+    if not any(char.isdigit() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one number'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one uppercase letter
+    if not any(char.isupper() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one uppercase letter'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one lowercase letter
+    if not any(char.islower() for char in password):
+        return Response(
+            {'error': 'Password must contain at least one lowercase letter'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # At least one special character
+    special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    if not any(char in special_chars for char in password):
+        return Response(
+            {'error': 'Password must contain at least one special character (!@#$%^&*...)'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     # ============================================
     # 7. CREATE USER
@@ -187,3 +206,43 @@ def register_view(request):
             {'error': f'Registration failed: {str(e)}'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+
+class UpdateAddressView(APIView):
+    """
+    PUT: Update user's home address
+    GET: Get user's home address
+    """
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        home_address = request.data.get('home_address')
+        
+        if not home_address or not home_address.strip():
+            return Response(
+                {'error': 'Home address is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = request.user
+        user.home_address = home_address.strip()
+        user.save()
+        
+        return Response({
+            'message': 'Address updated successfully',
+            'home_address': user.home_address
+        }, status=status.HTTP_200_OK)
+    
+    def get(self, request):
+        """Get current user's address"""
+        return Response({
+            'home_address': request.user.home_address or ''
+        }, status=status.HTTP_200_OK)

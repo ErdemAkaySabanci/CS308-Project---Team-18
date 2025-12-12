@@ -1,6 +1,6 @@
 // frontend/src/services/authService.js
 
-const API_URL = 'http://127.0.0.1:8000/api/users';
+const API_URL = 'http://localhost:8000/api/users';
 
 export const authService = {
   // Login function
