@@ -18,7 +18,8 @@ def get_or_create_cart(request):
         if not request.session.session_key:
             request.session.create()
         session_key = request.session.session_key
-        cart, created = Cart.objects.get_or_create(session_key=session_key, user=None)
+        # Check if user__isnull is needed or default (assuming user is nullable)
+        cart, created = Cart.objects.get_or_create(session_key=session_key, user__isnull=True)
         return cart
 
 
