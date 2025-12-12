@@ -36,7 +36,10 @@ const CartPage = () => {
     };
 
     const updateQuantity = async (itemId, newQty) => {
-        if (newQty < 1) return;
+        if (newQty < 1) {
+            await removeItem(itemId);
+            return;
+        }
 
         try {
             const result = await apiService.updateCartItem(itemId, newQty);
@@ -53,7 +56,7 @@ const CartPage = () => {
     };
 
     const removeItem = async (itemId) => {
-        if (!window.confirm("Remove this item?")) return;
+        
 
         try {
             const result = await apiService.deleteCartItem(itemId);
