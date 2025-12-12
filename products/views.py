@@ -10,7 +10,7 @@ from .serializers import (
 
 
 class ProductPagination(PageNumberPagination):
-    page_size = 12
+    page_size = 100
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -35,7 +35,7 @@ class ProductListView(generics.ListAPIView):
     search_fields = ['name', 'description', 'product_id']
 
     # Sıralama
-    ordering_fields = ['price', 'name', 'created_at', 'quantity_in_stock']
+    ordering_fields = ['price', 'name', 'created_at', 'quantity_in_stock', 'popularity']
     ordering = ['-created_at']  # Varsayılan: En yeni önce
 
     def get_queryset(self):

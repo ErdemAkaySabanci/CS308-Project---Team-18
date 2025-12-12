@@ -483,10 +483,16 @@ function ProductDetailPage() {
               <span style={styles.stockDot}></span>
               {product.is_in_stock ? 'In Stock' : 'Out of Stock'}
             </div>
-            {product.quantity_in_stock !== undefined && (
-              <span style={styles.stockCount}>
-                {product.quantity_in_stock} units available
-              </span>
+            {product.quantity_in_stock !== undefined && product.quantity_in_stock > 0 && (
+              product.quantity_in_stock <= 3 ? (
+                <span style={styles.lowStockWarning}>
+                  🔥 Only {product.quantity_in_stock} left - Order soon!
+                </span>
+              ) : (
+                <span style={styles.stockCount}>
+                  {product.quantity_in_stock} units available
+                </span>
+              )
             )}
           </div>
 
@@ -776,7 +782,18 @@ const styles = {
   inStock: { backgroundColor: "#ECFDF5", color: "#059669" },
   outOfStock: { backgroundColor: "#FEF2F2", color: "#DC2626" },
   stockDot: { width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "currentColor" },
-  stockCount: { color: "#64748B", fontSize: "14px" },
+  stockCount: {
+    color: "#64748B",
+    fontSize: "14px",
+  },
+  lowStockWarning: {
+    color: "#DC2626",
+    fontSize: "14px",
+    fontWeight: "600",
+    backgroundColor: "#FEF2F2",
+    padding: "6px 12px",
+    borderRadius: "20px",
+  },
   addToCartButton: {
     width: "100%",
     display: "flex",

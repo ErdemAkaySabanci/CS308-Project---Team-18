@@ -22,9 +22,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'product_id', 'name', 'price', 'discounted_price',
+            'id', 'product_id', 'name', 'description', 'price', 'discounted_price',
             'discount_rate', 'category_name', 'image', 'is_in_stock',
-            'quantity_in_stock', 'is_active'
+            'quantity_in_stock', 'is_active', 'popularity'
         ]
 
 
@@ -44,7 +44,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'discounted_price', 'discount_rate', 'warranty_status',
             'distributor', 'category', 'image', 'is_active',
             'is_in_stock', 'average_rating', 'review_count',
-            'created_at', 'updated_at'
+            'popularity', 'created_at', 'updated_at'
         ]
 
     def get_review_count(self, obj):
