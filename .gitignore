@@ -53,6 +53,3 @@ env/
 
 # OS
 Thumbs.db
-
-# Environment variables
-.env
