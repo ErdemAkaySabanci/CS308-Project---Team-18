@@ -11,6 +11,7 @@ export const apiService = {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -39,6 +40,7 @@ export const apiService = {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -65,6 +67,7 @@ export const apiService = {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -91,6 +94,7 @@ export const apiService = {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 import re
+from cart.utils import merge_cart
 
 
 @api_view(['POST'])
@@ -36,6 +37,9 @@ def login_view(request):
         if user.check_password(password):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
+            
+            # Merge guest cart if exists
+            merge_cart(user, request)
 
             return Response({
                 'message': 'Login successful',
@@ -163,6 +167,9 @@ def register_view(request):
             last_name=last_name,
             role='customer'
         )
+
+        # Merge guest cart if exists
+        merge_cart(user, request)
 
         return Response({
             'message': 'Registration successful',
