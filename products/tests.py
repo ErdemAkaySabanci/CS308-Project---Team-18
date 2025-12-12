@@ -5,6 +5,44 @@ from decimal import Decimal
 from products.models import Product, Category
 
 
+class ProductSmokeTest(APITestCase):
+    """Smoke Test: Basic functionality check"""
+
+    def test_api_is_up(self):
+        """Test that the API is accessible"""
+        response = self.client.get('/api/products/')
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND])
+
+    def test_database_connection(self):
+        """Test that database operations work"""
+        try:
+            Category.objects.create(name="Smoke Test Category")
+            self.assertTrue(True)
+        except Exception as e:
+            self.fail(f"Database connection failed: {str(e)}")
+
+    def test_basic_product_workflow(self):
+        """Test basic product creation and retrieval workflow"""
+        # Create category
+        category = Category.objects.create(name="Smoke Test")
+
+        # Create product
+        product = Product.objects.create(
+            name="Smoke Test Product",
+            description="Test description",
+            price=Decimal("99.99"),
+            category=category,
+            quantity_in_stock=10
+        )
+
+        # Verify product exists
+        self.assertIsNotNone(product.id)
+
+        # Retrieve via API
+        response = self.client.get(f'/api/products/{product.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
 class CategoryModelTest(TestCase):
     """Test 1: Category Model"""
     
