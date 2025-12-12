@@ -128,7 +128,12 @@ function ProductDetailPage() {
         ...prev,
         canReview: false,
         reason: 'already_reviewed',
-        message: 'You have already reviewed this product.'
+        message: 'You have already reviewed this product.',
+        existingReview: {
+          rating: userRating,
+          comment: userComment,
+          is_approved: false
+        }
       }));
 
       // Reload reviews to show the new rating
@@ -142,9 +147,12 @@ function ProductDetailPage() {
     }
   }
 
-  const renderStars = (rating, interactive = false, size = 24) => {
+  // ============================================
+  // REDESIGNED: renderStars with better interactions
+  // ============================================
+  const renderStars = (rating, interactive = false, size = 20) => {
     return (
-      <div style={{ display: 'flex', gap: '4px' }}>
+      <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
         {[1, 2, 3, 4, 5].map((star) => (
           <span
             key={star}
@@ -153,10 +161,17 @@ function ProductDetailPage() {
               fontSize: `${size}px`,
               cursor: interactive ? 'pointer' : 'default',
               color: star <= rating ? '#F59E0B' : '#E2E8F0',
-              transition: 'transform 0.1s ease',
+              transition: 'all 0.15s ease',
+              filter: star <= rating ? 'drop-shadow(0 1px 2px rgba(245, 158, 11, 0.3))' : 'none',
             }}
-            onMouseEnter={interactive ? (e) => e.target.style.transform = 'scale(1.2)' : undefined}
-            onMouseLeave={interactive ? (e) => e.target.style.transform = 'scale(1)' : undefined}
+            onMouseEnter={interactive ? (e) => {
+              e.target.style.transform = 'scale(1.15)';
+              e.target.style.color = '#F59E0B';
+            } : undefined}
+            onMouseLeave={interactive ? (e) => {
+              e.target.style.transform = 'scale(1)';
+              e.target.style.color = star <= userRating ? '#F59E0B' : '#E2E8F0';
+            } : undefined}
           >
             ★
           </span>
@@ -165,15 +180,28 @@ function ProductDetailPage() {
     );
   };
 
-  // Render the appropriate review section based on eligibility
+  // ============================================
+  // REDESIGNED: renderReviewSection with professional UI
+  // ============================================
   const renderReviewSection = () => {
     if (!isLoggedIn) {
       return (
         <div style={styles.eligibilityCard}>
-          <div style={styles.eligibilityIcon}>🔐</div>
-          <p style={styles.eligibilityMessage}>
-            Please <Link to="/login" style={styles.loginLink}>log in</Link> to write a review.
-          </p>
+          <div style={styles.eligibilityIconWrapper}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style={styles.eligibilityContent}>
+            <h4 style={styles.eligibilityTitle}>Sign in to Review</h4>
+            <p style={styles.eligibilityMessage}>
+              Share your experience with other customers
+            </p>
+          </div>
+          <Link to="/login" style={styles.loginButton}>
+            Sign In
+          </Link>
         </div>
       );
     }
@@ -182,7 +210,7 @@ function ProductDetailPage() {
       return (
         <div style={styles.eligibilityCard}>
           <div style={styles.loadingSpinner}></div>
-          <p style={styles.eligibilityMessage}>Checking review eligibility...</p>
+          <p style={styles.eligibilityMessage}>Checking eligibility...</p>
         </div>
       );
     }
@@ -191,27 +219,40 @@ function ProductDetailPage() {
     if (reviewEligibility.canReview) {
       return (
         <div style={styles.writeReviewCard}>
-          <h3 style={styles.writeReviewTitle}>✍️ Write a Review</h3>
-
-          <div style={styles.ratingInput}>
-            <label style={styles.ratingLabel}>Your Rating:</label>
-            {renderStars(userRating, true, 32)}
-            {userRating > 0 && (
-              <span style={styles.ratingValue}>{userRating}/5</span>
-            )}
+          <div style={styles.writeReviewHeader}>
+            <h3 style={styles.writeReviewTitle}>Write a Review</h3>
+            <span style={styles.writeReviewSubtitle}>Share your thoughts about this product</span>
           </div>
 
-          <textarea
-            value={userComment}
-            onChange={(e) => setUserComment(e.target.value)}
-            placeholder="Share your experience with this product... (optional)"
-            style={styles.commentInput}
-            rows={4}
-          />
+          <div style={styles.ratingInputSection}>
+            <div style={styles.ratingInputWrapper}>
+              <span style={styles.ratingLabel}>Your Rating</span>
+              <div style={styles.starsWrapper}>
+                {renderStars(userRating, true, 32)}
+                {userRating > 0 && (
+                  <span style={styles.ratingBadge}>{userRating}.0</span>
+                )}
+              </div>
+            </div>
+          </div>
 
-          <div style={styles.reviewNotes}>
-            <p>📌 <strong>Rating</strong> will be visible immediately</p>
-            <p>📝 <strong>Comment</strong> will be visible after product manager approval</p>
+          <div style={styles.commentSection}>
+            <label style={styles.commentLabel}>Your Review (Optional)</label>
+            <textarea
+              value={userComment}
+              onChange={(e) => setUserComment(e.target.value)}
+              placeholder="What did you like or dislike about this product?"
+              style={styles.commentInput}
+              rows={4}
+            />
+            <div style={styles.commentHint}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span>Comments require approval before appearing publicly</span>
+            </div>
           </div>
 
           <button
@@ -219,50 +260,80 @@ function ProductDetailPage() {
             disabled={submittingReview || userRating === 0}
             style={{
               ...styles.submitReviewButton,
-              opacity: (submittingReview || userRating === 0) ? 0.6 : 1,
-              cursor: (submittingReview || userRating === 0) ? 'not-allowed' : 'pointer'
+              ...(submittingReview || userRating === 0 ? styles.submitButtonDisabled : {})
             }}
           >
-            {submittingReview ? '⏳ Submitting...' : '📤 Submit Review'}
+            {submittingReview ? (
+              <>
+                <span style={styles.buttonSpinner}></span>
+                Submitting...
+              </>
+            ) : (
+              'Submit Review'
+            )}
           </button>
         </div>
       );
     }
 
-    // User CANNOT review - show reason
+    // User CANNOT review - show reason with refined cards
     const getEligibilityDisplay = () => {
       switch (reviewEligibility.reason) {
         case 'already_reviewed':
           return {
-            icon: '✅',
-            bgColor: '#ECFDF5',
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            ),
+            bgGradient: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
             borderColor: '#A7F3D0',
-            textColor: '#065F46',
-            title: 'You have reviewed this product'
+            titleColor: '#065F46',
+            title: 'Review Submitted'
           };
         case 'not_delivered':
           return {
-            icon: '📦',
-            bgColor: '#FEF3C7',
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13"/>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/>
+                <circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+            ),
+            bgGradient: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
             borderColor: '#FDE68A',
-            textColor: '#92400E',
-            title: 'Waiting for delivery'
+            titleColor: '#92400E',
+            title: 'Awaiting Delivery'
           };
         case 'not_purchased':
           return {
-            icon: '🛒',
-            bgColor: '#FEE2E2',
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              </svg>
+            ),
+            bgGradient: 'linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%)',
             borderColor: '#FECACA',
-            textColor: '#991B1B',
-            title: 'Purchase required'
+            titleColor: '#991B1B',
+            title: 'Purchase Required'
           };
         default:
           return {
-            icon: '❓',
-            bgColor: '#F3F4F6',
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            ),
+            bgGradient: 'linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%)',
             borderColor: '#E5E7EB',
-            textColor: '#4B5563',
-            title: 'Cannot review'
+            titleColor: '#4B5563',
+            title: 'Cannot Review'
           };
       }
     };
@@ -272,31 +343,42 @@ function ProductDetailPage() {
     return (
       <div style={{
         ...styles.eligibilityCard,
-        backgroundColor: display.bgColor,
-        borderColor: display.borderColor
+        background: display.bgGradient,
+        borderColor: display.borderColor,
+        flexWrap: "wrap",
       }}>
-        <div style={styles.eligibilityIcon}>{display.icon}</div>
-        <h4 style={{ ...styles.eligibilityTitle, color: display.textColor }}>
-          {display.title}
-        </h4>
-        <p style={{ ...styles.eligibilityMessage, color: display.textColor }}>
-          {reviewEligibility.message}
-        </p>
+        <div style={styles.eligibilityIconWrapper}>
+          {display.icon}
+        </div>
+        <div style={styles.eligibilityContent}>
+          <h4 style={{ ...styles.eligibilityTitle, color: display.titleColor }}>
+            {display.title}
+          </h4>
+          <p style={styles.eligibilityMessage}>
+            {reviewEligibility.message}
+          </p>
+        </div>
 
-        {/* Show existing review if available */}
+        {/* Show existing review if available - inline */}
         {reviewEligibility.existingReview && (
           <div style={styles.existingReviewPreview}>
-            <p style={styles.existingReviewLabel}>Your review:</p>
-            <div style={styles.existingRating}>
-              {renderStars(reviewEligibility.existingReview.rating, false, 20)}
+            <span style={styles.existingReviewLabel}>Your rating:</span>
+            <div style={styles.existingRatingRow}>
+              {renderStars(reviewEligibility.existingReview.rating, false, 16)}
+              <span style={styles.existingRatingText}>
+                {reviewEligibility.existingReview.rating}.0
+              </span>
             </div>
             {reviewEligibility.existingReview.comment && (
-              <p style={styles.existingComment}>
+              <p style={styles.existingComment} title={reviewEligibility.existingReview.comment}>
                 "{reviewEligibility.existingReview.comment}"
-                {!reviewEligibility.existingReview.is_approved && (
-                  <span style={styles.pendingBadge}>⏳ Pending approval</span>
-                )}
               </p>
+            )}
+            {!reviewEligibility.existingReview.is_approved && reviewEligibility.existingReview.comment && (
+              <span style={styles.pendingBadge}>
+                <span style={styles.pendingDot}></span>
+                Pending
+              </span>
             )}
           </div>
         )}
@@ -470,49 +552,107 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Reviews Section */}
+      {/* ============================================ */}
+      {/* REDESIGNED: Reviews Section */}
+      {/* ============================================ */}
       <div style={styles.reviewsSection}>
-        <h2 style={styles.reviewsTitle}>⭐ Customer Reviews</h2>
+        {/* Reviews Header */}
+        <div style={styles.reviewsSectionHeader}>
+          <div style={styles.reviewsTitleGroup}>
+            <h2 style={styles.reviewsTitle}>Customer Reviews</h2>
+            {totalReviews > 0 && (
+              <span style={styles.reviewCount}>{totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}</span>
+            )}
+          </div>
+
+          {/* Rating Overview - Only show if there are reviews */}
+          {averageRating && totalReviews > 0 && (
+            <div style={styles.ratingOverview}>
+              <div style={styles.ratingScoreBox}>
+                <span style={styles.ratingScoreNumber}>{averageRating.toFixed(1)}</span>
+                <span style={styles.ratingScoreMax}>/5</span>
+              </div>
+              <div style={styles.ratingStarsColumn}>
+                {renderStars(Math.round(averageRating), false, 18)}
+                <span style={styles.ratingBasedOn}>Based on {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={styles.sectionDivider}></div>
 
         {/* Review Form / Eligibility Message */}
         {renderReviewSection()}
 
         {/* Reviews List */}
         <div style={styles.reviewsList}>
-          <h3 style={styles.reviewsListTitle}>
-            {totalReviews > 0 ? `All Reviews (${totalReviews})` : 'Reviews'}
-          </h3>
+          <div style={styles.reviewsListHeader}>
+            <h3 style={styles.reviewsListTitle}>All Reviews</h3>
+            {reviews.length > 0 && (
+              <span style={styles.sortLabel}>Most Recent</span>
+            )}
+          </div>
 
           {reviews.length === 0 ? (
             <div style={styles.noReviews}>
-              <span style={{ fontSize: '48px' }}>📝</span>
-              <p>No reviews yet. Be the first to review!</p>
+              <div style={styles.noReviewsIcon}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <line x1="9" y1="9" x2="15" y2="9"/>
+                  <line x1="9" y1="13" x2="13" y2="13"/>
+                </svg>
+              </div>
+              <p style={styles.noReviewsTitle}>No Reviews Yet</p>
+              <p style={styles.noReviewsSubtitle}>Be the first to share your experience</p>
             </div>
           ) : (
-            reviews.map((review) => (
-              <div key={review.id} style={styles.reviewCard}>
-                <div style={styles.reviewHeader}>
-                  <div style={styles.reviewerInfo}>
-                    <span style={styles.reviewerAvatar}>
-                      {review.username?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                    <span style={styles.reviewerName}>{review.username}</span>
+            <div style={styles.reviewsGrid}>
+              {reviews.map((review, index) => (
+                <div key={review.id} style={styles.reviewCard}>
+                  <div style={styles.reviewCardHeader}>
+                    <div style={styles.reviewerInfo}>
+                      <div style={styles.reviewerAvatar}>
+                        {review.username?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div style={styles.reviewerDetails}>
+                        <span style={styles.reviewerName}>{review.username}</span>
+                        <span style={styles.reviewDate}>
+                          {new Date(review.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={styles.reviewRatingBadge}>
+                      {renderStars(review.rating, false, 14)}
+                    </div>
                   </div>
-                  <div style={styles.reviewMeta}>
-                    {renderStars(review.rating, false, 18)}
-                    <span style={styles.reviewDate}>
-                      {new Date(review.created_at).toLocaleDateString('tr-TR')}
-                    </span>
+
+                  {review.comment ? (
+                    <p style={styles.reviewComment}>{review.comment}</p>
+                  ) : (
+                    <p style={styles.noCommentText}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                      </svg>
+                      Rating only
+                    </p>
+                  )}
+
+                  {/* Verified Purchase Badge */}
+                  <div style={styles.verifiedBadge}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Verified Purchase</span>
                   </div>
                 </div>
-
-                {review.comment ? (
-                  <p style={styles.reviewComment}>{review.comment}</p>
-                ) : (
-                  <p style={styles.noCommentText}>Rating only (no comment)</p>
-                )}
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -521,6 +661,9 @@ function ProductDetailPage() {
 }
 
 const styles = {
+  // ============================================
+  // PAGE LAYOUT STYLES (unchanged)
+  // ============================================
   pageWrapper: {
     minHeight: "100vh",
     backgroundColor: "#F8FAFC",
@@ -633,10 +776,7 @@ const styles = {
   inStock: { backgroundColor: "#ECFDF5", color: "#059669" },
   outOfStock: { backgroundColor: "#FEF2F2", color: "#DC2626" },
   stockDot: { width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "currentColor" },
-  stockCount: {
-    color: "#64748B",
-    fontSize: "14px",
-  },
+  stockCount: { color: "#64748B", fontSize: "14px" },
   addToCartButton: {
     width: "100%",
     display: "flex",
@@ -658,24 +798,9 @@ const styles = {
   buttonDisabled: { backgroundColor: "#E2E8F0", color: "#94A3B8", cursor: "not-allowed", boxShadow: "none" },
   features: { display: "flex", gap: "24px", paddingTop: "24px", borderTop: "1px solid #F1F5F9" },
   featureItem: { display: "flex", alignItems: "center", gap: "8px", color: "#64748B", fontSize: "14px" },
-
-  // Specifications
-  specificationsSection: {
-    marginTop: "32px",
-    paddingTop: "32px",
-    borderTop: "2px solid #F1F5F9",
-  },
-  specificationsTitle: {
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: "20px",
-  },
-  specsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
+  specificationsSection: { marginTop: "32px", paddingTop: "32px", borderTop: "2px solid #F1F5F9" },
+  specificationsTitle: { fontSize: "20px", fontWeight: "700", color: "#1E293B", marginBottom: "20px" },
+  specsList: { display: "flex", flexDirection: "column", gap: "16px" },
   specItem: {
     display: "flex",
     justifyContent: "space-between",
@@ -685,133 +810,314 @@ const styles = {
     borderRadius: "10px",
     border: "1px solid #E2E8F0",
   },
-  specLabel: {
-    fontSize: "15px",
-    fontWeight: "600",
-    color: "#475569",
-  },
-  specValue: {
-    fontSize: "15px",
-    color: "#1E293B",
-    fontWeight: "500",
-  },
+  specLabel: { fontSize: "15px", fontWeight: "600", color: "#475569" },
+  specValue: { fontSize: "15px", color: "#1E293B", fontWeight: "500" },
 
-  // Reviews Section
+  // ============================================
+  // REDESIGNED: Reviews Section Styles
+  // ============================================
   reviewsSection: {
     maxWidth: "1200px",
-    margin: "40px auto 0",
+    margin: "32px auto 0",
     backgroundColor: "#FFFFFF",
-    borderRadius: "24px",
-    padding: "40px",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
-  },
-  reviewsTitle: { fontSize: "24px", fontWeight: "700", color: "#1E293B", marginBottom: "24px" },
-
-  // Write Review Card
-  writeReviewCard: {
-    backgroundColor: "#F0FDF4",
     borderRadius: "16px",
-    padding: "24px",
-    marginBottom: "32px",
-    border: "2px solid #BBF7D0",
+    padding: "0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)",
+    border: "1px solid #F1F5F9",
+    overflow: "hidden",
   },
-  writeReviewTitle: { fontSize: "18px", fontWeight: "600", color: "#166534", marginBottom: "20px", marginTop: "0" },
-  ratingInput: { display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" },
-  ratingLabel: { fontSize: "15px", fontWeight: "600", color: "#475569" },
-  ratingValue: { fontSize: "14px", color: "#64748B", fontWeight: "500" },
-  commentInput: {
-    width: "100%",
-    padding: "14px",
-    fontSize: "15px",
+  reviewsSectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "20px 32px",
+    flexWrap: "wrap",
+    gap: "16px",
+  },
+  reviewsTitleGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  reviewsTitle: {
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#0F172A",
+    margin: 0,
+    letterSpacing: "-0.01em",
+  },
+  reviewCount: {
+    backgroundColor: "#F1F5F9",
+    color: "#64748B",
+    padding: "3px 10px",
     borderRadius: "12px",
-    border: "1px solid #E2E8F0",
-    resize: "vertical",
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-    marginBottom: "16px",
-    transition: "border-color 0.2s ease",
+    fontSize: "12px",
+    fontWeight: "600",
   },
-  reviewNotes: {
-    backgroundColor: "#FFFFFF",
+  ratingOverview: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  ratingScoreBox: {
+    display: "flex",
+    alignItems: "baseline",
+    backgroundColor: "#FFF7ED",
+    padding: "6px 12px",
     borderRadius: "8px",
-    padding: "12px 16px",
+    border: "1px solid #FFEDD5",
+  },
+  ratingScoreNumber: {
+    fontSize: "20px",
+    fontWeight: "800",
+    color: "#EA580C",
+    letterSpacing: "-0.02em",
+  },
+  ratingScoreMax: {
+    fontSize: "12px",
+    fontWeight: "500",
+    color: "#9A3412",
+    marginLeft: "1px",
+  },
+  ratingStarsColumn: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  },
+  ratingBasedOn: {
+    fontSize: "11px",
+    color: "#64748B",
+  },
+  sectionDivider: {
+    height: "1px",
+    backgroundColor: "#F1F5F9",
+    margin: "0 32px",
+  },
+
+  // Write Review Card - Compact
+  writeReviewCard: {
+    margin: "20px 32px",
+    backgroundColor: "#FAFBFC",
+    borderRadius: "12px",
+    padding: "20px",
+    border: "1px solid #E8ECF1",
+  },
+  writeReviewHeader: {
     marginBottom: "16px",
+  },
+  writeReviewTitle: {
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#0F172A",
+    margin: "0 0 2px 0",
+  },
+  writeReviewSubtitle: {
     fontSize: "13px",
     color: "#64748B",
   },
-  submitReviewButton: {
-    padding: "14px 28px",
-    backgroundColor: "#22C55E",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "12px",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background-color 0.2s ease",
-  },
-
-  // Eligibility Card (for non-eligible states)
-  eligibilityCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: "16px",
-    padding: "32px",
-    marginBottom: "32px",
-    border: "2px solid #E2E8F0",
-    textAlign: "center",
-  },
-  eligibilityIcon: {
-    fontSize: "48px",
+  ratingInputSection: {
     marginBottom: "16px",
   },
-  eligibilityTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    marginBottom: "8px",
-    marginTop: "0",
-  },
-  eligibilityMessage: {
-    fontSize: "14px",
-    margin: "0",
-    lineHeight: "1.6",
-  },
-  loginLink: { color: "#F97316", fontWeight: "600", textDecoration: "none" },
-
-  // Existing review preview
-  existingReviewPreview: {
-    marginTop: "20px",
-    paddingTop: "20px",
-    borderTop: "1px solid #E5E7EB",
-  },
-  existingReviewLabel: {
-    fontSize: "12px",
-    color: "#6B7280",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  existingRating: {
-    marginBottom: "8px",
+  ratingInputWrapper: {
     display: "flex",
-    justifyContent: "center",
+    alignItems: "center",
+    gap: "12px",
   },
-  existingComment: {
-    fontSize: "14px",
-    fontStyle: "italic",
-    color: "#4B5563",
+  ratingLabel: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
   },
-  pendingBadge: {
-    display: "inline-block",
-    marginLeft: "8px",
-    backgroundColor: "#FEF3C7",
-    color: "#92400E",
+  starsWrapper: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  ratingBadge: {
+    backgroundColor: "#FFF7ED",
+    color: "#EA580C",
     padding: "2px 8px",
     borderRadius: "4px",
+    fontSize: "13px",
+    fontWeight: "700",
+  },
+  commentSection: {
+    marginBottom: "16px",
+  },
+  commentLabel: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginBottom: "8px",
+  },
+  commentInput: {
+    width: "100%",
+    padding: "12px",
+    fontSize: "14px",
+    borderRadius: "8px",
+    border: "1px solid #E2E8F0",
+    backgroundColor: "#FFFFFF",
+    resize: "vertical",
+    fontFamily: "inherit",
+    boxSizing: "border-box",
+    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+    outline: "none",
+    minHeight: "80px",
+  },
+  commentHint: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    marginTop: "8px",
+    fontSize: "11px",
+    color: "#94A3B8",
+  },
+  submitReviewButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    padding: "10px 24px",
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    boxShadow: "0 2px 4px rgba(15, 23, 42, 0.1)",
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#E2E8F0",
+    color: "#94A3B8",
+    cursor: "not-allowed",
+    boxShadow: "none",
+  },
+  buttonSpinner: {
+    width: "16px",
+    height: "16px",
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#FFFFFF",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+
+  // Eligibility Card - Compact
+  eligibilityCard: {
+    margin: "24px 32px",
+    backgroundColor: "#FAFBFC",
+    borderRadius: "12px",
+    padding: "16px 20px",
+    border: "1px solid #E8ECF1",
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    textAlign: "left",
+  },
+  eligibilityIconWrapper: {
+    width: "44px",
+    height: "44px",
+    minWidth: "44px",
+    borderRadius: "50%",
+    backgroundColor: "#FFFFFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+  },
+  eligibilityContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  eligibilityTitle: {
+    fontSize: "14px",
+    fontWeight: "700",
+    color: "#0F172A",
+    margin: "0 0 2px 0",
+  },
+  eligibilityMessage: {
+    fontSize: "12px",
+    color: "#64748B",
+    margin: 0,
+    lineHeight: "1.4",
+  },
+  loginButton: {
+    display: "inline-block",
+    marginLeft: "auto",
+    padding: "8px 20px",
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    borderRadius: "8px",
+    fontSize: "13px",
+    fontWeight: "600",
+    textDecoration: "none",
+    transition: "background-color 0.2s ease",
+    whiteSpace: "nowrap",
+  },
+
+  // Existing Review Preview - Compact inline
+  existingReviewPreview: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginLeft: "auto",
+    paddingLeft: "16px",
+    borderLeft: "1px solid rgba(0,0,0,0.08)",
+  },
+  existingReviewHeader: {
+    display: "none",
+  },
+  existingReviewLabel: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#64748B",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginRight: "8px",
+  },
+  existingRatingRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  existingRatingText: {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  existingComment: {
+    fontSize: "13px",
+    color: "#475569",
+    fontStyle: "italic",
+    margin: 0,
+    maxWidth: "200px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  pendingBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "#FEF3C7",
+    color: "#92400E",
+    padding: "4px 10px",
+    borderRadius: "20px",
     fontSize: "11px",
     fontWeight: "600",
   },
-
-  // Loading spinner for eligibility check
+  pendingDot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    backgroundColor: "#F59E0B",
+  },
   loadingSpinner: {
     width: "32px",
     height: "32px",
@@ -822,60 +1128,128 @@ const styles = {
     margin: "0 auto 16px",
   },
 
-  // Reviews List
+  // Reviews List - Compact
   reviewsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
+    padding: "20px 32px 28px",
   },
-  reviewsListTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#475569",
-    marginBottom: "16px",
-    paddingBottom: "12px",
-    borderBottom: "1px solid #E2E8F0",
-  },
-  noReviews: { textAlign: "center", padding: "48px 24px", color: "#64748B" },
-  reviewCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: "16px",
-    padding: "20px",
-    border: "1px solid #E2E8F0",
-  },
-  reviewHeader: {
+  reviewsListHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    marginBottom: "16px",
+  },
+  reviewsListTitle: {
+    fontSize: "14px",
+    fontWeight: "700",
+    color: "#0F172A",
+    margin: 0,
+  },
+  sortLabel: {
+    fontSize: "12px",
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+  noReviews: {
+    textAlign: "center",
+    padding: "32px 24px",
+  },
+  noReviewsIcon: {
     marginBottom: "12px",
-    flexWrap: "wrap",
+  },
+  noReviewsTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#475569",
+    margin: "0 0 4px 0",
+  },
+  noReviewsSubtitle: {
+    fontSize: "13px",
+    color: "#94A3B8",
+    margin: 0,
+  },
+  reviewsGrid: {
+    display: "flex",
+    flexDirection: "column",
     gap: "12px",
   },
-  reviewerInfo: { display: "flex", alignItems: "center", gap: "12px" },
+  reviewCard: {
+    backgroundColor: "#FAFBFC",
+    borderRadius: "10px",
+    padding: "16px",
+    border: "1px solid #F1F5F9",
+    transition: "border-color 0.2s ease",
+  },
+  reviewCardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "10px",
+    gap: "12px",
+  },
+  reviewerInfo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
   reviewerAvatar: {
-    width: "40px",
-    height: "40px",
+    width: "32px",
+    height: "32px",
     borderRadius: "50%",
-    backgroundColor: "#3B82F6",
+    background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
     color: "#FFFFFF",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "700",
-    fontSize: "16px",
+    fontSize: "13px",
+    boxShadow: "0 2px 4px rgba(59, 130, 246, 0.25)",
   },
-  reviewerName: { fontWeight: "600", color: "#1E293B" },
-  reviewMeta: {
+  reviewerDetails: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "flex-end",
-    gap: "4px",
+    gap: "1px",
   },
-  reviewComment: { color: "#475569", lineHeight: "1.6", marginBottom: "0", marginTop: "0" },
-  noCommentText: { color: "#94A3B8", fontStyle: "italic", fontSize: "14px", marginBottom: "0", marginTop: "0" },
-  reviewDate: { fontSize: "13px", color: "#94A3B8" },
+  reviewerName: {
+    fontWeight: "600",
+    color: "#0F172A",
+    fontSize: "13px",
+  },
+  reviewDate: {
+    fontSize: "11px",
+    color: "#94A3B8",
+  },
+  reviewRatingBadge: {
+    backgroundColor: "#FFF7ED",
+    padding: "4px 8px",
+    borderRadius: "6px",
+    border: "1px solid #FFEDD5",
+  },
+  reviewComment: {
+    color: "#475569",
+    lineHeight: "1.5",
+    margin: "0 0 10px 0",
+    fontSize: "13px",
+  },
+  noCommentText: {
+    color: "#94A3B8",
+    fontSize: "12px",
+    margin: "0 0 10px 0",
+    display: "flex",
+    alignItems: "center",
+  },
+  verifiedBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    backgroundColor: "#ECFDF5",
+    color: "#059669",
+    padding: "3px 8px",
+    borderRadius: "12px",
+    fontSize: "11px",
+    fontWeight: "600",
+  },
 
-  // Loading & Error
+  // Loading & Error (unchanged)
   loadingContainer: {
     minHeight: "100vh",
     display: "flex",
