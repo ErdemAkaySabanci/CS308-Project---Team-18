@@ -193,7 +193,7 @@ const CartPage = () => {
                         <h2 style={styles.modalTitle}>Sign In Required</h2>
                         <p style={styles.modalText}>Please sign in to proceed with checkout and complete your purchase.</p>
                         <div style={styles.modalButtons}>
-                            <button style={styles.modalButtonSecondary} onClick={() => setShowLoginModal(false)}>Continue Shopping</button>
+                            <button style={styles.modalButtonSecondary} onClick={() => { setShowLoginModal(false); navigate("/"); }}>Continue Shopping</button>
                             <Link to="/login" style={styles.modalButtonPrimary}>Sign In</Link>
                         </div>
                     </div>
