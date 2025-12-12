@@ -59,6 +59,24 @@ function ProductListPage() {
       return;
     }
 
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+      // Guest user - save to localStorage
+      const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+      const existingItem = guestCart.find(item => item.id === product.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        guestCart.push({ id: product.id, quantity: 1 });
+      }
+      localStorage.setItem('guestCart', JSON.stringify(guestCart));
+      showToast(`${product.name} added to cart! 🛒 (Login to checkout)`, 'success');
+      return;
+    }
+
+    // Logged in user - use API (original flow)
     try {
       await apiService.addToCart(product.id, 1);
       showToast(`${product.name} added to cart! 🛒`, 'success');
