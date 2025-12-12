@@ -11,6 +11,9 @@ function ProductListPage() {
   const [sortOption, setSortOption] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -21,14 +24,17 @@ function ProductListPage() {
       try {
         setLoading(true);
         setError(null);
-        let data;
+
+        let url = '/products/';
         if (urlCategoryId) {
-          data = await apiService.get(`/products/?category=${urlCategoryId}`);
-        } else {
-          data = await apiService.get("/products/");
+          url = `/products/?category=${urlCategoryId}`;
         }
+
+        const data = await apiService.get(url);
         const list = Array.isArray(data) ? data : data.results;
         setProducts(list || []);
+        setTotalCount(list ? list.length : 0);
+        setTotalPages(1);
       } catch (err) {
         console.error(err);
         setError("Could not load products.");
@@ -254,6 +260,55 @@ function ProductListPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={styles.pagination}>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              style={{
+                ...styles.pageButton,
+                ...(currentPage === 1 ? styles.pageButtonDisabled : {})
+              }}
+            >
+              ← Previous
+            </button>
+
+            <div style={styles.pageNumbers}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  style={{
+                    ...styles.pageNumberButton,
+                    ...(currentPage === page ? styles.pageNumberButtonActive : {})
+                  }}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              style={{
+                ...styles.pageButton,
+                ...(currentPage === totalPages ? styles.pageButtonDisabled : {})
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+
+        {/* Page Info */}
+        {totalCount > 0 && (
+          <p style={styles.pageInfo}>
+            Page {currentPage} of {totalPages} ({totalCount} products total)
+          </p>
         )}
       </div>
     </div>
@@ -624,6 +679,57 @@ const styles = {
     fontSize: "64px",
     marginBottom: "16px",
     display: "block",
+  },
+  pagination: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "16px",
+    marginTop: "40px",
+    padding: "20px 0",
+  },
+  pageButton: {
+    padding: "10px 20px",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#FFFFFF",
+    backgroundColor: "#F97316",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  pageButtonDisabled: {
+    backgroundColor: "#E5E7EB",
+    color: "#9CA3AF",
+    cursor: "not-allowed",
+  },
+  pageNumbers: {
+    display: "flex",
+    gap: "8px",
+  },
+  pageNumberButton: {
+    width: "40px",
+    height: "40px",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#374151",
+    backgroundColor: "#FFFFFF",
+    border: "2px solid #E5E7EB",
+    borderRadius: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  pageNumberButtonActive: {
+    backgroundColor: "#F97316",
+    color: "#FFFFFF",
+    borderColor: "#F97316",
+  },
+  pageInfo: {
+    textAlign: "center",
+    marginTop: "16px",
+    fontSize: "14px",
+    color: "#6B7280",
   },
 };
 
