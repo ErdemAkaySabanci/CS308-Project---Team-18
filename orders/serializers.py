@@ -3,12 +3,13 @@ from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product = serializers.IntegerField(source="product.id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
     image = serializers.ImageField(source="product.image", read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_name', 'quantity', 'price', 'subtotal', 'image']
+        fields = ['id', 'product', 'product_name', 'quantity', 'price', 'subtotal', 'image']
 
 
 class OrderSerializer(serializers.ModelSerializer):
