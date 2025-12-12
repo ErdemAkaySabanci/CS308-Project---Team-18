@@ -514,6 +514,12 @@ function ProductDetailPage() {
             )}
           </div>
 
+          {/* Product ID */}
+          <div style={styles.productIdContainer}>
+            <span style={styles.productIdLabel}>Product ID:</span>
+            <span style={styles.productIdValue}>#{product.product_id || product.id}</span>
+          </div>
+
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
@@ -787,7 +793,25 @@ const styles = {
   priceContainer: { display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" },
   currentPrice: { fontSize: "36px", fontWeight: "800", color: "#F97316" },
   originalPrice: { fontSize: "20px", color: "#94A3B8", textDecoration: "line-through" },
-  stockContainer: { display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" },
+  stockContainer: { display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" },
+  productIdContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "24px",
+    padding: "8px 0"
+  },
+  productIdLabel: {
+    fontSize: "14px",
+    color: "#64748B",
+    fontWeight: "500"
+  },
+  productIdValue: {
+    fontSize: "14px",
+    color: "#1E293B",
+    fontWeight: "600",
+    fontFamily: "monospace"
+  },
   stockBadge: {
     display: "flex",
     alignItems: "center",
