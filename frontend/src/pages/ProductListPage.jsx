@@ -62,9 +62,10 @@ function ProductListPage() {
     }
   };
 
-  // Filters
+  // Filters - search by name AND description
   const searchFiltered = products.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const categoryFiltered = searchFiltered.filter((p) => {
