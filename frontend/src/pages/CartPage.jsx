@@ -24,6 +24,51 @@ const CartPage = () => {
     const loadCart = async () => {
         try {
             setLoading(true);
+
+            // Check if user is logged in
+            const token = localStorage.getItem('access_token');
+
+            if (!token) {
+                // Guest user - load from localStorage
+                const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                if (guestCart.length > 0) {
+                    // We need product details, so fetch them
+                    const productDetails = await Promise.all(
+                        guestCart.map(async (item) => {
+                            try {
+                                const product = await apiService.get(`/products/${item.id}/`);
+                                return { ...item, product };
+                            } catch {
+                                return { ...item, product: { name: 'Unknown Product', price: 0 } };
+                            }
+                        })
+                    );
+
+                    const formattedCart = {
+                        items: productDetails.map((item, index) => ({
+                            id: `guest-${index}`,
+                            product: item.product,
+                            product_name: item.product.name,
+                            product_image: item.product.image,
+                            quantity: item.quantity,
+                            price: item.product.discounted_price || item.product.price,
+                            total: (item.product.discounted_price || item.product.price) * item.quantity
+                        })),
+                        total_price: productDetails.reduce((sum, item) =>
+                            sum + ((item.product.discounted_price || item.product.price) * item.quantity), 0
+                        ).toFixed(2),
+                        total_items: productDetails.reduce((sum, item) => sum + item.quantity, 0),
+                        isGuestCart: true
+                    };
+                    setCart(formattedCart);
+                } else {
+                    setCart(null);
+                }
+                setLoading(false);
+                return;
+            }
+
+            // Logged in user - use API (original flow)
             const data = await apiService.getCart();
             console.log('Cart data:', data);
             setCart(data);
@@ -41,6 +86,19 @@ const CartPage = () => {
             return;
         }
 
+        // Handle guest cart
+        if (typeof itemId === 'string' && itemId.startsWith('guest-')) {
+            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+            const index = parseInt(itemId.replace('guest-', ''));
+            if (guestCart[index]) {
+                guestCart[index].quantity = newQty;
+                localStorage.setItem('guestCart', JSON.stringify(guestCart));
+                await loadCart();
+            }
+            return;
+        }
+
+        // Logged in user - use API (original flow)
         try {
             const result = await apiService.updateCartItem(itemId, newQty);
             if (result && result.error) {
@@ -56,8 +114,18 @@ const CartPage = () => {
     };
 
     const removeItem = async (itemId) => {
-        
+        // Handle guest cart
+        if (typeof itemId === 'string' && itemId.startsWith('guest-')) {
+            const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+            const index = parseInt(itemId.replace('guest-', ''));
+            guestCart.splice(index, 1);
+            localStorage.setItem('guestCart', JSON.stringify(guestCart));
+            showToast('Item removed', 'success');
+            await loadCart();
+            return;
+        }
 
+        // Logged in user - use API (original flow)
         try {
             const result = await apiService.deleteCartItem(itemId);
             setCart(result);

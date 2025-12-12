@@ -28,6 +28,27 @@ const Login = () => {
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
         localStorage.setItem('user', JSON.stringify(data.user));
+
+        // Sync guest cart to backend (merge with user's cart)
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+        if (guestCart.length > 0) {
+          for (const item of guestCart) {
+            try {
+              await fetch('http://127.0.0.1:8000/api/cart/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${data.access}`
+                },
+                body: JSON.stringify({ product_id: item.id, quantity: item.quantity })
+              });
+            } catch (syncErr) {
+              console.error('Error syncing cart item:', syncErr);
+            }
+          }
+          localStorage.removeItem('guestCart');
+        }
+
         navigate('/');
       } else {
         setError(data.error || 'Invalid email or password');

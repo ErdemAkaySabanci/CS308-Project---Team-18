@@ -98,6 +98,24 @@ function ProductDetailPage() {
   };
 
   async function handleAddToCart() {
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token');
+
+    if (!token) {
+      // Guest user - save to localStorage
+      const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+      const existingItem = guestCart.find(item => item.id === product.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        guestCart.push({ id: product.id, quantity: 1 });
+      }
+      localStorage.setItem('guestCart', JSON.stringify(guestCart));
+      showToast('Product added to cart! 🛒 (Login to checkout)', 'success');
+      return;
+    }
+
+    // Logged in user - use API (original flow)
     try {
       await apiService.addToCart(product.id, 1);
       await refreshCart();
@@ -189,8 +207,8 @@ function ProductDetailPage() {
         <div style={styles.eligibilityCard}>
           <div style={styles.eligibilityIconWrapper}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
           <div style={styles.eligibilityContent}>
@@ -247,9 +265,9 @@ function ProductDetailPage() {
             />
             <div style={styles.commentHint}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="16" x2="12" y2="12"/>
-                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
               <span>Comments require approval before appearing publicly</span>
             </div>
@@ -283,8 +301,8 @@ function ProductDetailPage() {
           return {
             icon: (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             ),
             bgGradient: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
@@ -296,10 +314,10 @@ function ProductDetailPage() {
           return {
             icon: (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="3" width="15" height="13"/>
-                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                <circle cx="5.5" cy="18.5" r="2.5"/>
-                <circle cx="18.5" cy="18.5" r="2.5"/>
+                <rect x="1" y="3" width="15" height="13" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
             ),
             bgGradient: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
@@ -311,9 +329,9 @@ function ProductDetailPage() {
           return {
             icon: (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="21" r="1"/>
-                <circle cx="20" cy="21" r="1"/>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
               </svg>
             ),
             bgGradient: 'linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%)',
@@ -325,9 +343,9 @@ function ProductDetailPage() {
           return {
             icon: (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             ),
             bgGradient: 'linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%)',
@@ -605,9 +623,9 @@ function ProductDetailPage() {
             <div style={styles.noReviews}>
               <div style={styles.noReviewsIcon}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  <line x1="9" y1="9" x2="15" y2="9"/>
-                  <line x1="9" y1="13" x2="13" y2="13"/>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <line x1="9" y1="9" x2="15" y2="9" />
+                  <line x1="9" y1="13" x2="13" y2="13" />
                 </svg>
               </div>
               <p style={styles.noReviewsTitle}>No Reviews Yet</p>
@@ -643,7 +661,7 @@ function ProductDetailPage() {
                   ) : (
                     <p style={styles.noCommentText}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                       </svg>
                       Rating only
                     </p>
@@ -652,7 +670,7 @@ function ProductDetailPage() {
                   {/* Verified Purchase Badge */}
                   <div style={styles.verifiedBadge}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12"/>
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span>Verified Purchase</span>
                   </div>
