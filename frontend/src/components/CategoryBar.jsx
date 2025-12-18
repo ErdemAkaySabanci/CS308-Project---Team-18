@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiService } from "../services/apiService";
 
-function CategoryBar({ onSelect }) {
+function CategoryBar({ onSelect, selectedCategory }) {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
 
@@ -17,6 +17,11 @@ function CategoryBar({ onSelect }) {
     }
     loadCategories();
   }, []);
+
+  // Sync activeCategory with selectedCategory from parent
+  useEffect(() => {
+    setActiveCategory(selectedCategory);
+  }, [selectedCategory]);
 
   const handleSelect = (category) => {
     if (activeCategory?.id === category.id) {

@@ -18,14 +18,19 @@ class ProductListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     discounted_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     is_in_stock = serializers.BooleanField(read_only=True)
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             'id', 'product_id', 'name', 'description', 'price', 'discounted_price',
             'discount_rate', 'category_name', 'image', 'is_in_stock',
-            'quantity_in_stock', 'is_active', 'popularity'
+            'quantity_in_stock', 'is_active', 'popularity', 'average_rating'
         ]
+
+    def get_average_rating(self, obj):
+        """Ortalama rating'i hesapla"""
+        return obj.average_rating
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -33,7 +38,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     discounted_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     is_in_stock = serializers.BooleanField(read_only=True)
-    average_rating = serializers.DecimalField(max_digits=3, decimal_places=2, read_only=True)
+    average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -46,6 +51,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'is_in_stock', 'average_rating', 'review_count',
             'popularity', 'created_at', 'updated_at'
         ]
+
+    def get_average_rating(self, obj):
+        """Ortalama rating'i hesapla"""
+        return obj.average_rating
 
     def get_review_count(self, obj):
         return obj.reviews.filter(is_approved=True).count()

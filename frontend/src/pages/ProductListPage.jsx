@@ -8,8 +8,15 @@ function ProductListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [sortOption, setSortOption] = useState(() => {
+    // Load from localStorage on initial render
+    return localStorage.getItem('productListSortOption') || "";
+  });
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    // Load from localStorage on initial render
+    const saved = localStorage.getItem('productListCategory');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -44,6 +51,24 @@ function ProductListPage() {
     }
     loadProducts();
   }, [urlCategoryId]);
+
+  // Save sortOption to localStorage whenever it changes
+  useEffect(() => {
+    if (sortOption) {
+      localStorage.setItem('productListSortOption', sortOption);
+    } else {
+      localStorage.removeItem('productListSortOption');
+    }
+  }, [sortOption]);
+
+  // Save selectedCategory to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedCategory) {
+      localStorage.setItem('productListCategory', JSON.stringify(selectedCategory));
+    } else {
+      localStorage.removeItem('productListCategory');
+    }
+  }, [selectedCategory]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -103,6 +128,8 @@ function ProductListPage() {
     if (sortOption === "name_az") return a.name.localeCompare(b.name);
     if (sortOption === "name_za") return b.name.localeCompare(a.name);
     if (sortOption === "popularity") return (b.popularity || 0) - (a.popularity || 0);
+    if (sortOption === "rating_high") return (b.average_rating || 0) - (a.average_rating || 0);
+    if (sortOption === "rating_low") return (a.average_rating || 0) - (b.average_rating || 0);
     return 0;
   });
 
@@ -151,7 +178,7 @@ function ProductListPage() {
 
       <div style={styles.mainContent}>
         {/* Category Bar */}
-        <CategoryBar onSelect={(cat) => setSelectedCategory(cat)} />
+        <CategoryBar onSelect={(cat) => setSelectedCategory(cat)} selectedCategory={selectedCategory} />
 
         {/* Search & Filter Section */}
         <div style={styles.filterSection}>
@@ -174,6 +201,8 @@ function ProductListPage() {
             >
               <option value="">Sort By</option>
               <option value="popularity">🔥 Most Popular</option>
+              <option value="rating_high">⭐ Rating: High → Low</option>
+              <option value="rating_low">⭐ Rating: Low → High</option>
               <option value="price_low">Price: Low → High</option>
               <option value="price_high">Price: High → Low</option>
               <option value="name_az">Name: A → Z</option>
@@ -186,6 +215,9 @@ function ProductListPage() {
                   setSelectedCategory(null);
                   setSearchTerm("");
                   setSortOption("");
+                  // Clear from localStorage as well
+                  localStorage.removeItem('productListSortOption');
+                  localStorage.removeItem('productListCategory');
                 }}
                 style={styles.clearButton}
               >
