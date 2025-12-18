@@ -35,7 +35,7 @@ class ProductListView(generics.ListAPIView):
     search_fields = ['name', 'description', 'product_id']
 
     # Sıralama
-    ordering_fields = ['price', 'name', 'created_at', 'quantity_in_stock', 'popularity']
+    ordering_fields = ['price', 'name', 'created_at', 'quantity_in_stock', 'popularity', 'average_rating']
     ordering = ['-created_at']  # Varsayılan: En yeni önce
 
     def get_queryset(self):
