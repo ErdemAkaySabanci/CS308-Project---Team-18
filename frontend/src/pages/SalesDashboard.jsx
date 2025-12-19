@@ -40,6 +40,13 @@ const SalesDashboard = () => {
     const [discountProductIds, setDiscountProductIds] = useState('');
     const [discountPercentage, setDiscountPercentage] = useState('');
 
+    // Invoice state
+    const [invoices, setInvoices] = useState([]);
+    const [invoiceStartDate, setInvoiceStartDate] = useState('2024-01-01');
+    const [invoiceEndDate, setInvoiceEndDate] = useState('2025-12-31');
+    const [invoiceLoading, setInvoiceLoading] = useState(false);
+    const [invoiceError, setInvoiceError] = useState(null);
+
     // Fetch revenue report
     const fetchRevenueReport = async () => {
         setLoading(true);
@@ -114,6 +121,52 @@ const SalesDashboard = () => {
             alert('❌ Error: ' + err.message);
             console.error('Error:', err);
         }
+    };
+
+    // Fetch invoices
+    const fetchInvoices = async () => {
+        setInvoiceLoading(true);
+        setInvoiceError(null);
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(
+                `http://localhost:8000/api/orders/invoices/?start_date=${invoiceStartDate}&end_date=${invoiceEndDate}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to fetch invoices');
+            }
+
+            const data = await response.json();
+            setInvoices(data.invoices || []);
+        } catch (err) {
+            setInvoiceError(err.message);
+            console.error('Error fetching invoices:', err);
+        } finally {
+            setInvoiceLoading(false);
+        }
+    };
+
+    // Print invoice
+    const handlePrintInvoice = (invoiceUrl) => {
+        window.open(`http://localhost:8000${invoiceUrl}`, '_blank');
+    };
+
+    // Download PDF
+    const handleDownloadPDF = (invoiceUrl, invoiceNumber) => {
+        const link = document.createElement('a');
+        link.href = `http://localhost:8000${invoiceUrl}`;
+        link.download = `invoice_${invoiceNumber}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Chart configurations
@@ -389,12 +442,108 @@ const SalesDashboard = () => {
                             View, print, and download invoices for a specific date range.
                         </p>
 
-                        <div className="coming-soon">
-                            <div className="coming-soon-icon">🚧</div>
-                            <h3>Coming Soon</h3>
-                            <p>Invoice management feature will be available in the next update.</p>
-                            <small>You'll be able to view, filter, print, and export invoices as PDF.</small>
+                        <div className="date-filter-container">
+                            <div className="date-inputs">
+                                <div className="input-group">
+                                    <label>Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={invoiceStartDate}
+                                        onChange={(e) => setInvoiceStartDate(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="input-group">
+                                    <label>End Date</label>
+                                    <input
+                                        type="date"
+                                        value={invoiceEndDate}
+                                        onChange={(e) => setInvoiceEndDate(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                className="generate-btn"
+                                onClick={fetchInvoices}
+                                disabled={invoiceLoading}
+                            >
+                                {invoiceLoading ? '⏳ Loading...' : '📄 Fetch Invoices'}
+                            </button>
                         </div>
+
+                        {invoiceError && (
+                            <div className="error-alert">
+                                <span>⚠️</span>
+                                <p>{invoiceError}</p>
+                            </div>
+                        )}
+
+                        {invoices.length > 0 && (
+                            <div className="invoice-table-container">
+                                <div className="invoice-table-header">
+                                    <h3>Found {invoices.length} invoice(s)</h3>
+                                </div>
+                                <div className="invoice-table-wrapper">
+                                    <table className="invoice-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Invoice #</th>
+                                                <th>Customer</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th className="no-print">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {invoices.map((invoice) => (
+                                                <tr key={invoice.id}>
+                                                    <td className="invoice-number">{invoice.invoice_number}</td>
+                                                    <td>
+                                                        <div className="customer-info">
+                                                            <strong>{invoice.customer_name}</strong>
+                                                            <small>{invoice.customer_email}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>{new Date(invoice.created_at).toLocaleDateString('tr-TR')}</td>
+                                                    <td className="amount">{invoice.total_price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
+                                                    <td>
+                                                        <span className={`status-badge status-${invoice.status}`}>
+                                                            {invoice.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="actions no-print">
+                                                        <button
+                                                            className="action-btn print-btn"
+                                                            onClick={() => handlePrintInvoice(invoice.invoice_url)}
+                                                            title="Print Invoice"
+                                                        >
+                                                            🖨️
+                                                        </button>
+                                                        <button
+                                                            className="action-btn download-btn"
+                                                            onClick={() => handleDownloadPDF(invoice.invoice_url, invoice.invoice_number)}
+                                                            title="Download PDF"
+                                                        >
+                                                            📥
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {invoices.length === 0 && !invoiceLoading && !invoiceError && (
+                            <div className="empty-state">
+                                <div className="empty-icon">📄</div>
+                                <h3>No Invoices Found</h3>
+                                <p>Select a date range and click "Fetch Invoices" to view invoices.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -413,6 +413,176 @@
   color: #aaa;
 }
 
+/* Invoice Table */
+.invoice-table-container {
+  margin-top: 30px;
+}
+
+.invoice-table-header {
+  margin-bottom: 20px;
+}
+
+.invoice-table-header h3 {
+  color: #333;
+  font-size: 20px;
+  margin: 0;
+}
+
+.invoice-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.invoice-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.invoice-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.invoice-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.invoice-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.invoice-table td {
+  padding: 16px;
+  font-size: 15px;
+  color: #333;
+}
+
+.invoice-number {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.customer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customer-info strong {
+  font-weight: 600;
+  color: #333;
+}
+
+.customer-info small {
+  color: #999;
+  font-size: 13px;
+}
+
+.amount {
+  font-weight: 600;
+  color: #43e97b;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-processing {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.status-delivered {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+  background: #f0f0f0;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.print-btn:hover {
+  background: #e3f2fd;
+}
+
+.download-btn:hover {
+  background: #e8f5e9;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Print Media Query */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard-header h1 {
