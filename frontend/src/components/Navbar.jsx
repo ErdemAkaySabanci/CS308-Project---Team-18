@@ -7,6 +7,10 @@ const Navbar = () => {
     const navigate = useNavigate();
     const isAuthenticated = authService.isAuthenticated();
 
+    // Get user role
+    const user = isAuthenticated ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+    const isSalesManager = user?.role === 'sales_manager';
+
     const handleLogout = () => {
         authService.logout();
         navigate('/login');
@@ -72,6 +76,18 @@ const Navbar = () => {
                     >
                         📦 My Orders
                     </NavLink>
+
+                    {isSalesManager && (
+                        <NavLink
+                            to="/sales-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.navLink,
+                                ...(isActive ? styles.navLinkActive : {})
+                            })}
+                        >
+                            📊 Sales Dashboard
+                        </NavLink>
+                    )}
 
                     <div style={styles.divider}></div>
 
@@ -149,6 +165,19 @@ const Navbar = () => {
                         📦 My Orders
                     </NavLink>
 
+                    {isSalesManager && (
+                        <NavLink
+                            to="/sales-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.mobileNavLink,
+                                ...(isActive ? styles.mobileNavLinkActive : {})
+                            })}
+                            onClick={closeMobileMenu}
+                        >
+                            📊 Sales Dashboard
+                        </NavLink>
+                    )}
+
                     <div style={styles.mobileDivider}></div>
 
                     {isAuthenticated ? (
@@ -198,7 +227,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    
+
     // Logo
     logo: {
         display: 'flex',
