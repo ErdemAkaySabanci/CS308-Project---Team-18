@@ -216,8 +216,11 @@ class InvoiceDownloadView(APIView):
         from django.http import FileResponse, Http404
         import os
         
-        # Get order and verify ownership
-        order = get_object_or_404(Order, id=order_id, user=request.user)
+        # Sales Manager can access all invoices, regular users only their own
+        if hasattr(request.user, 'role') and request.user.role == 'sales_manager':
+            order = get_object_or_404(Order, id=order_id)
+        else:
+            order = get_object_or_404(Order, id=order_id, user=request.user)
         
         # Check if invoice exists
         if not order.invoice_file:

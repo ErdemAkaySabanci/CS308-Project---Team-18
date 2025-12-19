@@ -154,19 +154,71 @@ const SalesDashboard = () => {
         }
     };
 
-    // Print invoice
-    const handlePrintInvoice = (invoiceUrl) => {
-        window.open(`http://localhost:8000${invoiceUrl}`, '_blank');
+    // Print invoice (Open PDF in new tab with blob and trigger print)
+    const handlePrintInvoice = async (invoiceUrl, invoiceNumber) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000${invoiceUrl}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load invoice for printing');
+            }
+
+            // Convert to blob and create URL
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // Open in new tab
+            const printWindow = window.open(url, '_blank');
+
+            // Trigger print dialog when loaded
+            if (printWindow) {
+                printWindow.onload = () => {
+                    printWindow.print();
+                };
+            }
+        } catch (err) {
+            alert('Error printing invoice: ' + err.message);
+            console.error('Print error:', err);
+        }
     };
 
-    // Download PDF
-    const handleDownloadPDF = (invoiceUrl, invoiceNumber) => {
-        const link = document.createElement('a');
-        link.href = `http://localhost:8000${invoiceUrl}`;
-        link.download = `invoice_${invoiceNumber}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Download PDF (Secure with JWT)
+    const handleDownloadPDF = async (invoiceUrl, invoiceNumber) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000${invoiceUrl}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download invoice');
+            }
+
+            // Convert response to blob
+            const blob = await response.blob();
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `invoice_${invoiceNumber}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            alert('Error downloading PDF: ' + err.message);
+            console.error('Download error:', err);
+        }
     };
 
     // Chart configurations
@@ -516,7 +568,7 @@ const SalesDashboard = () => {
                                                     <td className="actions no-print">
                                                         <button
                                                             className="action-btn print-btn"
-                                                            onClick={() => handlePrintInvoice(invoice.invoice_url)}
+                                                            onClick={() => handlePrintInvoice(invoice.invoice_url, invoice.invoice_number)}
                                                             title="Print Invoice"
                                                         >
                                                             🖨️
