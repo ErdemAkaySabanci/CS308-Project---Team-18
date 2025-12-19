@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, generics, permissions
 from rest_framework.generics import ListAPIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils.crypto import get_random_string
@@ -246,5 +247,81 @@ class InvoiceDownloadView(APIView):
         except Exception as e:
             return Response(
                 {"error": f"Error downloading invoice: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# ---------------------------------------------------------
+# 7) REVENUE & PROFIT REPORT (SALES MANAGER)
+# ---------------------------------------------------------
+class RevenueReportView(APIView):
+    """
+    Sales Manager için revenue/profit raporu
+    Tarih aralığına göre delivered siparişlerin gelir/maliyet/kar hesaplaması
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Role kontrolü - sadece sales_manager erişebilir
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can access this report."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Tarih parametrelerini al
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if not start_date or not end_date:
+            return Response(
+                {"error": "Both start_date and end_date are required (format: YYYY-MM-DD)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Tarih aralığındaki delivered siparişleri getir
+            orders = Order.objects.filter(
+                created_at__gte=start_date,
+                created_at__lte=end_date,
+                status='delivered'
+            ).prefetch_related('items__product')
+            
+            total_revenue = 0
+            total_cost = 0
+            order_count = orders.count()
+            
+            # Her sipariş için hesaplama
+            for order in orders:
+                total_revenue += float(order.total_price)
+                
+                # Her ürün için maliyet hesapla
+                for item in order.items.all():
+                    # Cost field'i varsa kullan, yoksa fiyatın %50'si
+                    if item.product.cost:
+                        product_cost = float(item.product.cost)
+                    else:
+                        product_cost = float(item.price) * 0.5
+                    total_cost += product_cost * item.quantity
+            
+            # Kar/Zarar hesapla
+            profit = total_revenue - total_cost
+            profit_margin = (profit / total_revenue * 100) if total_revenue > 0 else 0
+            
+            return Response({
+                "start_date": start_date,
+                "end_date": end_date,
+                "order_count": order_count,
+                "total_revenue": round(total_revenue, 2),
+                "total_cost": round(total_cost, 2),
+                "profit": round(profit, 2),
+                "profit_margin_percentage": round(profit_margin, 2),
+                "status": "profit" if profit >= 0 else "loss"
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Error generating report: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

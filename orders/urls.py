@@ -7,6 +7,7 @@ from .views import (
     OrderDetailView,
     UpdateOrderStatusView,
     InvoiceDownloadView,
+    RevenueReportView,
 )
 
 urlpatterns = [
@@ -30,4 +31,7 @@ urlpatterns = [
 
     # REST: Update Order Status
     path("<int:pk>/status/", UpdateOrderStatusView.as_view(), name="order-status"),
+    
+    # Revenue & Profit Report (Sales Manager)
+    path("revenue-report/", RevenueReportView.as_view(), name="revenue-report"),
 ]
