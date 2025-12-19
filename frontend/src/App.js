@@ -15,6 +15,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
+import SalesDashboard from "./pages/SalesDashboard";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -52,7 +53,7 @@ function App() {
   return (
     <Router>
       <Navbar />
-    
+
       <Routes>
         {/* AUTH */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -66,6 +67,9 @@ function App() {
         <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+
+        {/* SALES MANAGER */}
+        <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />

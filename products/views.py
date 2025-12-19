@@ -74,3 +74,84 @@ class CategoryListView(generics.ListAPIView):
     """Kategori listesi"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+
+# ---------------------------------------------------------
+# DISCOUNT API (SALES MANAGER)
+# ---------------------------------------------------------
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import status
+
+
+class ApplyDiscountView(APIView):
+    """
+    Sales Manager için discount uygulama API
+    Ürünlere discount uygular ve wishlist'te olan kullanıcılara bildirim gönderir
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        # Role kontrolü
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can apply discounts."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Request data
+        product_ids = request.data.get('product_ids', [])
+        discount_percentage = request.data.get('discount_percentage')
+        
+        if not product_ids or discount_percentage is None:
+            return Response(
+                {"error": "product_ids and discount_percentage are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            discount_percentage = float(discount_percentage)
+            if discount_percentage < 0 or discount_percentage > 100:
+                return Response(
+                    {"error": "Discount percentage must be between 0 and 100"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Invalid discount percentage"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Ürünleri bul ve discount uygula
+        products = Product.objects.filter(id__in=product_ids, is_active=True)
+        
+        if not products.exists():
+            return Response(
+                {"error": "No valid products found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        updated_count = 0
+        # notified_users = set()  # Will be enabled when Wishlist is implemented
+        
+        for product in products:
+            # Discount uygula
+            product.discount_rate = discount_percentage
+            product.save()
+            updated_count += 1
+            
+            # TODO: Wishlist notification - will be enabled when Wishlist model is added
+            # from users.models import Wishlist
+            # wishlists = Wishlist.objects.filter(product=product).select_related('user')
+            # for wishlist in wishlists:
+            #     notified_users.add(wishlist.user.id)
+        
+        return Response({
+            "message": f"Discount applied successfully to {updated_count} product(s)",
+            "updated_products": updated_count,
+            # "notified_users": len(notified_users),  # Will be enabled when Wishlist is implemented
+            "discount_percentage": discount_percentage
+        }, status=status.HTTP_200_OK)
