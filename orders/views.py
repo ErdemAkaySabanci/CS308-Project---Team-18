@@ -325,3 +325,74 @@ class RevenueReportView(APIView):
                 {"error": f"Error generating report: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+# ---------------------------------------------------------
+# 8) INVOICE LIST (SALES MANAGER)
+# ---------------------------------------------------------
+class InvoiceListView(APIView):
+    """
+    Sales Manager için invoice listesi
+    Tarih aralığına göre filtreleme
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Role kontrolü - sadece sales_manager erişebilir
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can access invoices."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Tarih parametrelerini al
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        try:
+            # Base queryset - sadece invoice_file olan siparişler
+            orders = Order.objects.filter(
+                invoice_file__isnull=False
+            ).select_related('user').prefetch_related('items__product')
+            
+            # Tarih filtresi (opsiyonel)
+            if start_date:
+                orders = orders.filter(created_at__gte=start_date)
+            if end_date:
+                orders = orders.filter(created_at__lte=end_date)
+            
+            # Sıralama: En yeni önce
+            orders = orders.order_by('-created_at')
+            
+            # Invoice listesi oluştur
+            invoices = []
+            for order in orders:
+                invoices.append({
+                    "id": order.id,
+                    "invoice_number": order.invoice_number,
+                    "order_id": order.id,
+                    "customer_name": order.user.get_full_name() or order.user.username,
+                    "customer_email": order.user.email,
+                    "total_price": float(order.total_price),
+                    "created_at": order.created_at.isoformat(),
+                    "status": order.status,
+                    "invoice_url": f"/api/orders/{order.id}/invoice/download/",
+                    "delivery_address": order.delivery_address,
+                    "payment_method": order.payment_method or "N/A",
+                    "card_last_4": order.card_last_4 or "N/A"
+                })
+            
+            return Response({
+                "invoices": invoices,
+                "total_count": len(invoices),
+                "start_date": start_date,
+                "end_date": end_date
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Error fetching invoices: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

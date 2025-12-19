@@ -8,6 +8,7 @@ from .views import (
     UpdateOrderStatusView,
     InvoiceDownloadView,
     RevenueReportView,
+    InvoiceListView,
 )
 
 urlpatterns = [
@@ -34,4 +35,7 @@ urlpatterns = [
     
     # Revenue & Profit Report (Sales Manager)
     path("revenue-report/", RevenueReportView.as_view(), name="revenue-report"),
+    
+    # Invoice List (Sales Manager)
+    path("invoices/", InvoiceListView.as_view(), name="invoice-list"),
 ]
