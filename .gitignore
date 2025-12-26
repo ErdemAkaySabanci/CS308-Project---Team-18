@@ -33,6 +33,8 @@ __pycache__/
 
 # Django database
 db.sqlite3
+*.backup
+*.sqlite3.backup
 
 # Claude
 .claude/

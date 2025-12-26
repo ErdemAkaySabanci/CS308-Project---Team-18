@@ -8,8 +8,7 @@ from .views import (
     ApproveReviewView,
     CheckReviewEligibilityView,
     MyReviewableProductsView,
-    WishListView,
-    WishListItemView,
+    MyReviewableProductsView,
 )
 
 urlpatterns = [
@@ -31,7 +30,5 @@ urlpatterns = [
     path('pending/', PendingReviewsView.as_view(), name='pending-reviews'),
     path('<int:review_id>/approve/', ApproveReviewView.as_view(), name='approve-review'),
     
-    # Wishlist
-    path('wishlist/', WishListView.as_view(), name='wishlist'),
-    path('wishlist/<int:product_id>/', WishListItemView.as_view(), name='wishlist-item'),
+
 ]

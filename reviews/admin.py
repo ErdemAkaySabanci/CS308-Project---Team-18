@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Review, WishList
+from .models import Review
 
 
 @admin.register(Review)
@@ -15,8 +15,3 @@ class ReviewAdmin(admin.ModelAdmin):
 
     approve_reviews.short_description = "Seçili yorumları onayla"
 
-
-@admin.register(WishList)
-class WishListAdmin(admin.ModelAdmin):
-    list_display = ['user', 'product', 'added_at']
-    search_fields = ['user__username', 'product__name']

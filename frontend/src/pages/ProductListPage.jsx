@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiService } from "../services/apiService";
+import { authService } from "../services/authService";
 import CategoryBar from "../components/CategoryBar";
 
 function ProductListPage() {
@@ -20,7 +21,9 @@ function ProductListPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
   const [totalCount, setTotalCount] = useState(0);
+  const [wishlistIDs, setWishlistIDs] = useState(new Set());
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -51,6 +54,52 @@ function ProductListPage() {
     }
     loadProducts();
   }, [urlCategoryId]);
+
+  // Load Wishlist
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      fetchWishlist();
+    }
+  }, []);
+
+  const fetchWishlist = async () => {
+    try {
+      const data = await apiService.getWishlist();
+      const ids = new Set(data.map(item => item.product));
+      setWishlistIDs(ids);
+    } catch (err) {
+      console.error("Failed to load wishlist", err);
+    }
+  };
+
+  const toggleWishlist = async (e, productId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!authService.isAuthenticated()) {
+      showToast('Please login to use wishlist', 'error');
+      return;
+    }
+
+    try {
+      if (wishlistIDs.has(productId)) {
+        await apiService.removeFromWishlist(productId);
+        setWishlistIDs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+        showToast('Removed from wishlist', 'success');
+      } else {
+        await apiService.addToWishlist(productId);
+        setWishlistIDs(prev => new Set(prev).add(productId));
+        showToast('Added to wishlist', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Action failed', 'error');
+    }
+  };
 
   // Save sortOption to localStorage whenever it changes
   useEffect(() => {
@@ -265,6 +314,34 @@ function ProductListPage() {
                         <span>Out of Stock</span>
                       </div>
                     )}
+
+
+                    {/* Wishlist Button */}
+                    <button
+                      onClick={(e) => toggleWishlist(e, p.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: 'none',
+                        cursor: 'pointer',
+                        zIndex: 10,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {wishlistIDs.has(p.id) ? (
+                        <span style={{ fontSize: '18px', color: '#EF4444' }}>❤️</span>
+                      ) : (
+                        <span style={{ fontSize: '18px', color: '#9CA3AF' }}>🤍</span>
+                      )}
+                    </button>
                   </div>
 
                   <div style={styles.cardBody}>
@@ -310,58 +387,63 @@ function ProductListPage() {
               </div>
             ))}
           </div>
-        )}
+        )
+        }
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={styles.pagination}>
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              style={{
-                ...styles.pageButton,
-                ...(currentPage === 1 ? styles.pageButtonDisabled : {})
-              }}
-            >
-              ← Previous
-            </button>
+        {
+          totalPages > 1 && (
+            <div style={styles.pagination}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  ...styles.pageButton,
+                  ...(currentPage === 1 ? styles.pageButtonDisabled : {})
+                }}
+              >
+                ← Previous
+              </button>
 
-            <div style={styles.pageNumbers}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    ...styles.pageNumberButton,
-                    ...(currentPage === page ? styles.pageNumberButtonActive : {})
-                  }}
-                >
-                  {page}
-                </button>
-              ))}
+              <div style={styles.pageNumbers}>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    style={{
+                      ...styles.pageNumberButton,
+                      ...(currentPage === page ? styles.pageNumberButtonActive : {})
+                    }}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                style={{
+                  ...styles.pageButton,
+                  ...(currentPage === totalPages ? styles.pageButtonDisabled : {})
+                }}
+              >
+                Next →
+              </button>
             </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              style={{
-                ...styles.pageButton,
-                ...(currentPage === totalPages ? styles.pageButtonDisabled : {})
-              }}
-            >
-              Next →
-            </button>
-          </div>
-        )}
+          )
+        }
 
         {/* Page Info */}
-        {totalCount > 0 && (
-          <p style={styles.pageInfo}>
-            Page {currentPage} of {totalPages} ({totalCount} products total)
-          </p>
-        )}
-      </div>
-    </div>
+        {
+          totalCount > 0 && (
+            <p style={styles.pageInfo}>
+              Page {currentPage} of {totalPages} ({totalCount} products total)
+            </p>
+          )
+        }
+      </div >
+    </div >
   );
 }
 
