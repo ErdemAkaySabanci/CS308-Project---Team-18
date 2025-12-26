@@ -10,6 +10,8 @@ from .views import (
     RevenueReportView,
     InvoiceListView,
     DeliveryListView,
+    RefundListView,
+    RefundApprovalView,
 )
 
 urlpatterns = [
@@ -42,4 +44,8 @@ urlpatterns = [
     
     # Delivery List (Product Manager)
     path("deliveries/", DeliveryListView.as_view(), name="delivery-list"),
+    
+    # Refund List & Approval (Sales Manager)
+    path("refunds/pending/", RefundListView.as_view(), name="refund-list"),
+    path("refunds/<int:pk>/approval/", RefundApprovalView.as_view(), name="refund-approval"),
 ]

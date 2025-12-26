@@ -168,4 +168,8 @@ export const apiService = {
   // Comments / Reviews
   getPendingReviews: () => apiService.get("/reviews/pending/"),
   approveReview: (id, action) => apiService.post(`/reviews/${id}/approve/`, { action }), // action: 'approve' or 'reject'
+
+  // Refunds
+  getPendingRefunds: () => apiService.get("/orders/refunds/pending/"),
+  processRefund: (id, action) => apiService.post(`/orders/refunds/${id}/approval/`, { action }), // action: 'approve' or 'reject'
 };

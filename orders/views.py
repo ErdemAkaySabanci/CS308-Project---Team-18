@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils.crypto import get_random_string
 from django.conf import settings
+from django.utils import timezone
 
 from cart.models import Cart
 from .models import Order, OrderItem
@@ -492,3 +493,78 @@ class DeliveryListView(generics.ListAPIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().list(request, *args, **kwargs)
+
+
+# ---------------------------------------------------------
+# 10) REFUND LIST AND APPROVAL (SALES MANAGER)
+# ---------------------------------------------------------
+from .models import Refund
+from .serializers import RefundSerializer
+
+class RefundListView(generics.ListAPIView):
+    """
+    Refund List for Sales Manager
+    Lists all refunds with status 'pending'
+    """
+    serializer_class = RefundSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Allow only sales_manager
+        if self.request.user.role != 'sales_manager' and not self.request.user.is_staff:
+             return Refund.objects.none()
+
+        return Refund.objects.filter(status='pending').order_by('created_at')
+
+    def list(self, request, *args, **kwargs):
+        if self.request.user.role != 'sales_manager' and not self.request.user.is_staff:
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can view refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().list(request, *args, **kwargs)
+
+
+class RefundApprovalView(APIView):
+    """
+    Approve or Reject a refund request
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if request.user.role != 'sales_manager' and not request.user.is_staff:
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can approve refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        refund = get_object_or_404(Refund, pk=pk)
+        action = request.data.get('action') # 'approve' or 'reject'
+
+        if action == 'approve':
+            refund.status = 'approved'
+            refund.processed_at = timezone.now()
+            refund.processed_by = request.user
+            refund.save()
+            
+            # If we had wallet/payment integration, we would trigger refund logic here.
+            # Update order/item status if needed? 
+            # Ideally, if all items refunded, order -> refunded.
+            # For now, just focus on Refund object status.
+            
+            return Response({"message": "Refund approved successfully."})
+        
+        elif action == 'reject':
+            refund.status = 'rejected'
+            refund.processed_at = timezone.now()
+            refund.processed_by = request.user
+            refund.save()
+            return Response({"message": "Refund rejected."})
+        
+        else:
+            return Response(
+                {"error": "Invalid action. Use 'approve' or 'reject'."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

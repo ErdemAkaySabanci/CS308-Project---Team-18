@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Refund
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -27,3 +27,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_at',
             'items',
         ]
+
+
+class RefundSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source='order.id', read_only=True)
+    product_name = serializers.CharField(source='order_item.product.name', read_only=True)
+    user_name = serializers.CharField(source='order.user.username', read_only=True)
+
+    class Meta:
+        model = Refund
+        fields = ['id', 'order_id', 'product_name', 'user_name', 'reason', 'refund_amount', 'status', 'created_at']

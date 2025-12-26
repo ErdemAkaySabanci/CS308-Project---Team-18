@@ -18,6 +18,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SalesDashboard from "./pages/SalesDashboard";
 import ProductManagerDashboard from "./pages/ProductManagerDashboard";
+import RefundApprovalPage from "./pages/RefundApprovalPage";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -73,6 +74,7 @@ function App() {
 
         {/* SALES MANAGER */}
         <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
+        <Route path="/refund-approval" element={<ProtectedRoute><RefundApprovalPage /></ProtectedRoute>} />
 
         {/* PRODUCT MANAGER */}
         <Route path="/product-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
