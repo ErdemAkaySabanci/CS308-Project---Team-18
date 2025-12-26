@@ -187,23 +187,87 @@ class OrderDetailView(generics.RetrieveAPIView):
 # ---------------------------------------------------------
 # 6) ORDER STATUS UPDATE (PATCH)
 # ---------------------------------------------------------
+def send_status_update_email(order, new_status):
+    """Send email notification when order status changes"""
+    from django.core.mail import EmailMessage
+
+    status_messages = {
+        'processing': {
+            'subject': f'Order #{order.invoice_number} - Processing',
+            'body': f'Your order is being processed and will be shipped soon.'
+        },
+        'in_transit': {
+            'subject': f'Order #{order.invoice_number} - In Transit',
+            'body': f'Your order is on its way! You should receive it soon.'
+        },
+        'delivered': {
+            'subject': f'Order #{order.invoice_number} - Delivered',
+            'body': f'Your order has been delivered! We hope you enjoy your purchase.'
+        },
+        'cancelled': {
+            'subject': f'Order #{order.invoice_number} - Cancelled',
+            'body': f'Your order has been cancelled as requested.'
+        }
+    }
+
+    msg_data = status_messages.get(new_status)
+    if not msg_data:
+        return
+
+    try:
+        email = EmailMessage(
+            subject=msg_data['subject'],
+            body=f"Dear {order.user.get_full_name() or order.user.username},\n\n{msg_data['body']}\n\nOrder Details:\n- Invoice Number: {order.invoice_number}\n- Total: {order.total_price} TL\n- Delivery Address: {order.delivery_address}\n\nBest regards,\nSport Store Team",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[order.user.email],
+        )
+        email.send()
+    except Exception as e:
+        print(f"Error sending status update email: {e}")
+
+
 class UpdateOrderStatusView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, pk):
+        # Permission check - only sales_manager and product_manager can update order status
+        if not hasattr(request.user, 'role') or request.user.role not in ['sales_manager', 'product_manager']:
+            return Response(
+                {"error": "Permission denied. Only Sales or Product Managers can update order status."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         order = get_object_or_404(Order, pk=pk)
         new_status = request.data.get("status")
 
+        # Validate status
         if new_status not in dict(Order.ORDER_STATUS):
             return Response({"error": "Invalid status"}, status=400)
 
+        # Check if transition is valid
+        valid_transitions = order.get_valid_next_statuses()
+        if new_status != order.status and new_status not in valid_transitions:
+            return Response({
+                "error": f"Invalid status transition. From '{order.status}' you can only transition to: {', '.join(valid_transitions)}",
+                "current_status": order.status,
+                "valid_next_statuses": valid_transitions
+            }, status=400)
+
+        # Update status and log
+        old_status = order.status
         order.status = new_status
+        order.add_status_log(new_status, updated_by=request.user)
         order.save()
 
-        return Response(
-            {"message": "Order status updated."},
-            status=200
-        )
+        # Send email notification
+        send_status_update_email(order, new_status)
+
+        return Response({
+            "message": "Order status updated successfully.",
+            "old_status": old_status,
+            "new_status": new_status,
+            "status_log": order.status_log
+        }, status=200)
 
 
 # ---------------------------------------------------------
