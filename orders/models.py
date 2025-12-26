@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from products.models import Product
 from decimal import Decimal
+from django.utils import timezone
 
 class Order(models.Model):
     ORDER_STATUS = (
@@ -29,6 +30,9 @@ class Order(models.Model):
     invoice_file = models.FileField(upload_to='invoices/', null=True, blank=True)
     # ---------------------------------------------------
 
+    # Status log - tracks status changes
+    status_log = models.JSONField(default=list, blank=True)
+
     class Meta:
         ordering = ['-created_at']
 
@@ -42,6 +46,29 @@ class Order(models.Model):
     @property
     def can_be_refunded(self):
         return self.status == 'delivered'
+
+    def add_status_log(self, new_status, updated_by=None):
+        """Add status change to status log"""
+        if not isinstance(self.status_log, list):
+            self.status_log = []
+
+        self.status_log.append({
+            'status': new_status,
+            'timestamp': timezone.now().isoformat(),
+            'updated_by': updated_by.username if updated_by else 'System'
+        })
+
+    def get_valid_next_statuses(self):
+        """Get valid next statuses based on current status"""
+        transitions = {
+            'processing': ['in_transit', 'cancelled'],
+            'in_transit': ['delivered'],
+            'delivered': ['refund_requested'],
+            'cancelled': [],
+            'refund_requested': ['refunded'],
+            'refunded': []
+        }
+        return transitions.get(self.status, [])
 
 
 class OrderItem(models.Model):
