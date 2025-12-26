@@ -40,12 +40,134 @@ const SalesDashboard = () => {
     const [discountProductIds, setDiscountProductIds] = useState('');
     const [discountPercentage, setDiscountPercentage] = useState('');
 
+    // Product selection state for visual discount management
+    const [products, setProducts] = useState([]);
+    const [selectedProducts, setSelectedProducts] = useState([]);
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [discountLoading, setDiscountLoading] = useState(false);
+
     // Invoice state
     const [invoices, setInvoices] = useState([]);
     const [invoiceStartDate, setInvoiceStartDate] = useState('2024-01-01');
     const [invoiceEndDate, setInvoiceEndDate] = useState('2025-12-31');
     const [invoiceLoading, setInvoiceLoading] = useState(false);
     const [invoiceError, setInvoiceError] = useState(null);
+
+    // Fetch all products for discount management
+    useEffect(() => {
+        if (activeTab === 'discount') {
+            fetchProducts();
+        }
+    }, [activeTab]);
+
+    const fetchProducts = async () => {
+        setProductsLoading(true);
+        try {
+            const response = await fetch('http://localhost:8000/api/products/');
+            const data = await response.json();
+            // Handle both {results: [...]} and direct array formats
+            const productList = Array.isArray(data) ? data : (data.results || []);
+            setProducts(productList);
+        } catch (err) {
+            console.error('Error fetching products:', err);
+            setProducts([]);
+        } finally {
+            setProductsLoading(false);
+        }
+    };
+
+    // Toggle product selection
+    const toggleProductSelection = (productId) => {
+        setSelectedProducts(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
+    };
+
+    // Select/Deselect all
+    const selectAll = () => setSelectedProducts(products.map(p => p.id));
+    const deselectAll = () => setSelectedProducts([]);
+
+    // Apply discount to selected products
+    const applyDiscountToSelected = async () => {
+        if (selectedProducts.length === 0) {
+            alert('Please select at least one product');
+            return;
+        }
+        if (!discountPercentage || discountPercentage <= 0) {
+            alert('Please enter a valid discount percentage');
+            return;
+        }
+
+        setDiscountLoading(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/api/apply-discount/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_ids: selectedProducts,
+                    discount_percentage: parseFloat(discountPercentage)
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to apply discount');
+            }
+
+            const result = await response.json();
+            alert(`✅ ${result.message || 'Discount applied successfully!'}`);
+            setSelectedProducts([]);
+            setDiscountPercentage('');
+            fetchProducts(); // Refresh products
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        } finally {
+            setDiscountLoading(false);
+        }
+    };
+
+    // Remove discount from selected products
+    const removeDiscountFromSelected = async () => {
+        if (selectedProducts.length === 0) {
+            alert('Please select at least one product');
+            return;
+        }
+
+        setDiscountLoading(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/api/apply-discount/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_ids: selectedProducts,
+                    discount_percentage: 0
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to remove discount');
+            }
+
+            alert('✅ Discount removed successfully!');
+            setSelectedProducts([]);
+            fetchProducts(); // Refresh products
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        } finally {
+            setDiscountLoading(false);
+        }
+    };
 
     // Fetch revenue report
     const fetchRevenueReport = async () => {
@@ -425,62 +547,133 @@ const SalesDashboard = () => {
             {activeTab === 'discount' && (
                 <div className="tab-content">
                     <div className="discount-section card">
-                        <h2>Apply Discount to Products</h2>
+                        <h2>🏷️ Discount Management</h2>
                         <p className="section-description">
-                            Set discounts on products and automatically notify users who have them in their wishlist.
+                            Select products and apply or remove discounts. Changes will be reflected on the store immediately.
                         </p>
 
-                        <form onSubmit={handleApplyDiscount} className="discount-form">
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Product IDs (comma-separated)</label>
-                                    <input
-                                        type="text"
-                                        value={discountProductIds}
-                                        onChange={(e) => setDiscountProductIds(e.target.value)}
-                                        placeholder="e.g., 1, 2, 3, 4"
-                                        className="form-input"
-                                    />
-                                    <small className="form-hint">Enter product IDs separated by commas</small>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Discount Percentage</label>
-                                    <div className="input-with-suffix">
-                                        <input
-                                            type="number"
-                                            value={discountPercentage}
-                                            onChange={(e) => setDiscountPercentage(e.target.value)}
-                                            placeholder="20"
-                                            min="0"
-                                            max="100"
-                                            step="0.01"
-                                            className="form-input"
-                                        />
-                                        <span className="input-suffix">%</span>
-                                    </div>
-                                    <small className="form-hint">Discount rate (0-100%)</small>
-                                </div>
+                        {/* Action Bar */}
+                        <div className="discount-action-bar">
+                            <div className="selection-controls">
+                                <button className="select-btn" onClick={selectAll}>
+                                    ☑️ Select All
+                                </button>
+                                <button className="select-btn" onClick={deselectAll}>
+                                    ☐ Deselect All
+                                </button>
+                                <span className="selected-count">
+                                    {selectedProducts.length} product(s) selected
+                                </span>
                             </div>
 
-                            <button type="submit" className="submit-btn">
-                                <span>🏷️</span>
-                                Apply Discount & Notify Wishlist Users
-                            </button>
-                        </form>
-
-                        <div className="info-box">
-                            <div className="info-icon">ℹ️</div>
-                            <div className="info-content">
-                                <h4>How it works:</h4>
-                                <ul>
-                                    <li>Enter the IDs of products you want to discount</li>
-                                    <li>Set the discount percentage</li>
-                                    <li>Users who have these products in their wishlist will be notified</li>
-                                    <li>Discounted prices will be automatically calculated and displayed</li>
-                                </ul>
+                            <div className="discount-controls">
+                                <div className="discount-input-group">
+                                    <input
+                                        type="number"
+                                        value={discountPercentage}
+                                        onChange={(e) => setDiscountPercentage(e.target.value)}
+                                        placeholder="20"
+                                        min="0"
+                                        max="100"
+                                        className="discount-input"
+                                    />
+                                    <span className="input-label">%</span>
+                                </div>
+                                <button
+                                    className="apply-btn"
+                                    onClick={applyDiscountToSelected}
+                                    disabled={discountLoading || selectedProducts.length === 0}
+                                >
+                                    {discountLoading ? '⏳' : '🏷️'} Apply Discount
+                                </button>
+                                <button
+                                    className="remove-btn"
+                                    onClick={removeDiscountFromSelected}
+                                    disabled={discountLoading || selectedProducts.length === 0}
+                                >
+                                    {discountLoading ? '⏳' : '❌'} Remove Discount
+                                </button>
                             </div>
                         </div>
+
+                        {/* Product Grid */}
+                        {productsLoading ? (
+                            <div className="loading-state">
+                                <div className="spinner"></div>
+                                <p>Loading products...</p>
+                            </div>
+                        ) : (
+                            <div className="product-grid">
+                                {products.map(product => (
+                                    <div
+                                        key={product.id}
+                                        className={`product-card ${selectedProducts.includes(product.id) ? 'selected' : ''}`}
+                                        onClick={() => toggleProductSelection(product.id)}
+                                    >
+                                        {/* Checkbox */}
+                                        <div className="product-checkbox">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProducts.includes(product.id)}
+                                                onChange={() => { }}
+                                                readOnly
+                                            />
+                                        </div>
+
+                                        {/* Discount Badge */}
+                                        {product.discount_rate > 0 && (
+                                            <div className="discount-badge">
+                                                -{product.discount_rate}%
+                                            </div>
+                                        )}
+
+                                        {/* Product Image */}
+                                        <div className="product-image">
+                                            {product.image ? (
+                                                <img src={product.image} alt={product.name} />
+                                            ) : (
+                                                <div className="no-image">🏃</div>
+                                            )}
+                                        </div>
+
+                                        {/* Product Info */}
+                                        <div className="product-info">
+                                            <h4 className="product-name">{product.name}</h4>
+                                            <p className="product-category">{product.category_name || 'Uncategorized'}</p>
+
+                                            <div className="product-pricing">
+                                                {product.discount_rate > 0 ? (
+                                                    <>
+                                                        <span className="original-price">
+                                                            {product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                        </span>
+                                                        <span className="discounted-price">
+                                                            {(product.price * (1 - product.discount_rate / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="current-price">
+                                                        {product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="product-stock">
+                                                Stock: {product.quantity_in_stock}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {products.length === 0 && !productsLoading && (
+                            <div className="empty-state">
+                                <div className="empty-icon">📦</div>
+                                <h3>No Products Found</h3>
+                                <p>There are no products in the store.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
