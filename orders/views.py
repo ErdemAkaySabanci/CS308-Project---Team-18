@@ -463,3 +463,32 @@ class InvoiceListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+# ---------------------------------------------------------
+# 9) DELIVERY LIST (PRODUCT MANAGER)
+# ---------------------------------------------------------
+class DeliveryListView(generics.ListAPIView):
+    """
+    Delivery List for Product Manager
+    Lists all orders that are 'processing' or 'in_transit'.
+    """
+    serializer_class = OrderSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Allow both product_manager and sales_manager
+        if self.request.user.role not in ['product_manager', 'sales_manager'] and not self.request.user.is_staff:
+             return Order.objects.none()
+
+        return Order.objects.filter(
+            status__in=['processing', 'in_transit']
+        ).order_by('created_at')
+
+    def list(self, request, *args, **kwargs):
+        if self.request.user.role not in ['product_manager', 'sales_manager'] and not self.request.user.is_staff:
+            return Response(
+                {"error": "Permission denied. Only Product/Sales Managers can view deliveries."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().list(request, *args, **kwargs)

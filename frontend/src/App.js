@@ -17,6 +17,7 @@ import WishlistPage from "./pages/WishlistPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SalesDashboard from "./pages/SalesDashboard";
+import ProductManagerDashboard from "./pages/ProductManagerDashboard";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -72,6 +73,9 @@ function App() {
 
         {/* SALES MANAGER */}
         <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
+
+        {/* PRODUCT MANAGER */}
+        <Route path="/product-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -65,6 +65,19 @@ export const apiService = {
   },
 
   // -------------------------------
+  // Generic PATCH
+  // -------------------------------
+  patch: async (endpoint, data) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "PATCH",
+      credentials: 'include',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response, () => apiService.patch(endpoint, data));
+  },
+
+  // -------------------------------
   // Generic DELETE (Restored for compatibility)
   // -------------------------------
   delete: async (endpoint) => {
@@ -133,4 +146,26 @@ export const apiService = {
   getWishlist: () => apiService.get("/users/wishlist/"),
   addToWishlist: (productId) => apiService.post("/users/wishlist/", { product_id: productId }),
   removeFromWishlist: (productId) => apiService.delete(`/users/wishlist/${productId}/`),
+
+  // -------------------------------
+  // Product Manager API
+  // -------------------------------
+  // Products
+  getAllProducts: () => apiService.get("/products-crud/"),
+  createProduct: (data) => apiService.post("/products-crud/", data),
+  updateProduct: (id, data) => apiService.put(`/products-crud/${id}/`, data),
+  deleteProduct: (id) => apiService.delete(`/products-crud/${id}/`),
+
+  // Categories
+  createCategory: (data) => apiService.post("/categories-crud/", data),
+  updateCategory: (id, data) => apiService.put(`/categories-crud/${id}/`, data),
+  deleteCategory: (id) => apiService.delete(`/categories-crud/${id}/`),
+
+  // Deliveries
+  getDeliveries: () => apiService.get("/orders/deliveries/"),
+  updateOrderStatus: (id, status) => apiService.patch(`/orders/${id}/status/`, { status }),
+
+  // Comments / Reviews
+  getPendingReviews: () => apiService.get("/reviews/pending/"),
+  approveReview: (id, action) => apiService.post(`/reviews/${id}/approve/`, { action }), // action: 'approve' or 'reject'
 };

@@ -241,4 +241,69 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
+        return super().destroy(request, *args, **kwargs)
+
+
+# ---------------------------------------------------------
+# PRODUCT CRUD API (PRODUCT MANAGER)
+# ---------------------------------------------------------
+class ProductViewSet(viewsets.ModelViewSet):
+    """
+    Product CRUD API (Product Manager only)
+    
+    GET /products-crud/ - List all products (includes inactive ones)
+    POST /products-crud/ - Create a product
+    PUT /products-crud/<id>/ - Update a product
+    DELETE /products-crud/<id>/ - Delete a product
+    """
+    queryset = Product.objects.all()
+    serializer_class = ProductDetailSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def check_product_manager_role(self, request):
+        """Product Manager role kontrolü"""
+        if not hasattr(request.user, 'role') or request.user.role != 'product_manager':
+            return Response(
+                {"error": "Permission denied. Only Product Managers can perform this action."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return None
+
+    def list(self, request, *args, **kwargs):
+        """List products - Product Manager view sees all, others might be restricted but we restrict whole view check"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().retrieve(request, *args, **kwargs)
+        
+    def create(self, request, *args, **kwargs):
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
         return super().destroy(request, *args, **kwargs)
