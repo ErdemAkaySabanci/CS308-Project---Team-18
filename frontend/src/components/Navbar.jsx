@@ -10,6 +10,7 @@ const Navbar = () => {
     // Get user role
     const user = isAuthenticated ? JSON.parse(localStorage.getItem('user') || '{}') : null;
     const isSalesManager = user?.role === 'sales_manager';
+    const isProductManager = user?.role === 'product_manager';
 
     const handleLogout = () => {
         authService.logout();
@@ -96,6 +97,18 @@ const Navbar = () => {
                             })}
                         >
                             📊 Sales Dashboard
+                        </NavLink>
+                    )}
+
+                    {isProductManager && (
+                        <NavLink
+                            to="/product-manager-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.navLink,
+                                ...(isActive ? styles.navLinkActive : {})
+                            })}
+                        >
+                            📦 PM Dashboard
                         </NavLink>
                     )}
 
