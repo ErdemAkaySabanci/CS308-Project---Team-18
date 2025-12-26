@@ -49,6 +49,16 @@ const Navbar = () => {
                     </NavLink>
 
                     <NavLink
+                        to="/wishlist"
+                        style={({ isActive }) => ({
+                            ...styles.navLink,
+                            ...(isActive ? styles.navLinkActive : {})
+                        })}
+                    >
+                        ❤️ Wishlist
+                    </NavLink>
+
+                    <NavLink
                         to="/cart"
                         style={({ isActive }) => ({
                             ...styles.navLink,
@@ -141,6 +151,17 @@ const Navbar = () => {
                         end
                     >
                         🏠 Home
+                    </NavLink>
+
+                    <NavLink
+                        to="/wishlist"
+                        style={({ isActive }) => ({
+                            ...styles.mobileNavLink,
+                            ...(isActive ? styles.mobileNavLinkActive : {})
+                        })}
+                        onClick={closeMobileMenu}
+                    >
+                        ❤️ Wishlist
                     </NavLink>
 
                     <NavLink

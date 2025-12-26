@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Review, WishList
+from .models import Review
 from products.models import Product
 
 
@@ -41,12 +41,4 @@ class ReviewPublicSerializer(serializers.ModelSerializer):
         return None
 
 
-class WishListSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
-    product_image = serializers.ImageField(source='product.image', read_only=True)
-    
-    class Meta:
-        model = WishList
-        fields = ['id', 'product', 'product_name', 'product_price', 'product_image', 'added_at']
-        read_only_fields = ['added_at']
+

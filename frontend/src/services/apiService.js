@@ -126,4 +126,11 @@ export const apiService = {
   getAddress: () => apiService.get(`/users/address/`),
 
   updateAddress: (address) => apiService.put(`/users/address/`, { home_address: address }),
+
+  // -------------------------------
+  // Wishlist
+  // -------------------------------
+  getWishlist: () => apiService.get("/users/wishlist/"),
+  addToWishlist: (productId) => apiService.post("/users/wishlist/", { product_id: productId }),
+  removeFromWishlist: (productId) => apiService.delete(`/users/wishlist/${productId}/`),
 };

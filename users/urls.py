@@ -11,5 +11,9 @@ urlpatterns = [
     # NEW
     path('me/', views.CurrentUserView.as_view(), name='current-user'),
     path('address/', views.UpdateAddressView.as_view(), name='update-address'),
+
+    # Wishlist
+    path('wishlist/', views.WishListView.as_view(), name='wishlist'),
+    path('wishlist/<int:product_id>/', views.WishListItemView.as_view(), name='wishlist-item'),
 ]
 

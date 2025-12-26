@@ -4,12 +4,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from django.shortcuts import get_object_or_404
 
-from .models import Review, WishList
+from .models import Review
 from .serializers import (
     ReviewSerializer, 
     ReviewCreateSerializer, 
-    ReviewPublicSerializer,
-    WishListSerializer
+    ReviewPublicSerializer
 )
 from products.models import Product
 from orders.models import Order, OrderItem
@@ -277,40 +276,4 @@ class ApproveReviewView(APIView):
             )
 
 
-# ---------------------------------------------------------
-# WISHLIST
-# ---------------------------------------------------------
-class WishListView(APIView):
-    """Get user's wishlist"""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        wishlist = WishList.objects.filter(user=request.user)
-        serializer = WishListSerializer(wishlist, many=True)
-        return Response(serializer.data)
-    
-    def post(self, request):
-        product_id = request.data.get('product_id')
-        product = get_object_or_404(Product, id=product_id)
-        
-        wishlist_item, created = WishList.objects.get_or_create(
-            user=request.user,
-            product=product
-        )
-        
-        if created:
-            return Response(
-                {'message': 'Product added to wishlist.'},
-                status=status.HTTP_201_CREATED
-            )
-        return Response({'message': 'Product already in wishlist.'})
 
-
-class WishListItemView(APIView):
-    """Remove item from wishlist"""
-    permission_classes = [IsAuthenticated]
-    
-    def delete(self, request, product_id):
-        product = get_object_or_404(Product, id=product_id)
-        WishList.objects.filter(user=request.user, product=product).delete()
-        return Response({'message': 'Product removed from wishlist.'})

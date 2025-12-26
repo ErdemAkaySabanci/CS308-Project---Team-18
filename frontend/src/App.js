@@ -13,6 +13,7 @@ import { authService } from "./services/authService";
 import ProductListPage from "./pages/ProductListPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
+import WishlistPage from "./pages/WishlistPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SalesDashboard from "./pages/SalesDashboard";
@@ -64,6 +65,7 @@ function App() {
         <Route path="/" element={<ProductListPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
