@@ -1,4 +1,4 @@
-from rest_framework import generics, filters
+from rest_framework import generics, filters, viewsets
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product, Category
@@ -155,3 +155,90 @@ class ApplyDiscountView(APIView):
             # "notified_users": len(notified_users),  # Will be enabled when Wishlist is implemented
             "discount_percentage": discount_percentage
         }, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------
+# CATEGORY CRUD API (PRODUCT MANAGER)
+# ---------------------------------------------------------
+class CategoryViewSet(viewsets.ModelViewSet):
+    """
+    Category CRUD API (Product Manager only)
+
+    GET /categories/ - List all categories (public)
+    GET /categories/<id>/ - Retrieve a category (public)
+    POST /categories/ - Create a category (Product Manager only)
+    PUT /categories/<id>/ - Update a category (Product Manager only)
+    DELETE /categories/<id>/ - Delete a category (Product Manager only)
+
+    Note: Category can only be deleted if it has no products
+    """
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    authentication_classes = [JWTAuthentication]
+
+    def get_permissions(self):
+        """
+        GET istekleri için herkes izinli
+        POST, PUT, DELETE için authentication gerekli ve Product Manager rolü kontrolü yapılacak
+        """
+        if self.action in ['list', 'retrieve']:
+            # List ve retrieve için authentication gerekmez
+            permission_classes = []
+        else:
+            # Create, update, delete için authentication gerekli
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def check_product_manager_role(self, request):
+        """Product Manager role kontrolü"""
+        if not hasattr(request.user, 'role') or request.user.role != 'product_manager':
+            return Response(
+                {"error": "Permission denied. Only Product Managers can perform this action."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return None
+
+    def create(self, request, *args, **kwargs):
+        """Create category - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """Update category - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Partial update category - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete category - Product Manager only
+        Cannot delete category if it has products
+        """
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+
+        category = self.get_object()
+
+        # Kategoriye ait ürün var mı kontrol et
+        product_count = category.products.count()
+        if product_count > 0:
+            return Response(
+                {
+                    "error": f"Cannot delete category. It has {product_count} product(s).",
+                    "detail": "Please delete or reassign all products before deleting this category."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().destroy(request, *args, **kwargs)
