@@ -142,7 +142,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        user = self.request.user
+        # Product managers and sales managers can see all orders
+        if hasattr(user, 'role') and user.role in ['product_manager', 'sales_manager']:
+            return Order.objects.all().order_by('-created_at')
+        # Regular users only see their own orders
+        return Order.objects.filter(user=user).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -406,10 +411,10 @@ class InvoiceListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Role kontrolü - sadece sales_manager erişebilir
-        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+        # Role kontrolü - sales_manager ve product_manager erişebilir
+        if not hasattr(request.user, 'role') or request.user.role not in ['sales_manager', 'product_manager']:
             return Response(
-                {"error": "Permission denied. Only Sales Managers can access invoices."},
+                {"error": "Permission denied. Only Sales Managers and Product Managers can access invoices."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
