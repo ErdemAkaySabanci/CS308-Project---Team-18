@@ -9,6 +9,7 @@ from .views import (
     InvoiceDownloadView,
     RevenueReportView,
     InvoiceListView,
+    CancelOrderView,
 )
 
 urlpatterns = [
@@ -38,4 +39,7 @@ urlpatterns = [
     
     # Invoice List (Sales Manager)
     path("invoices/", InvoiceListView.as_view(), name="invoice-list"),
+    
+    # Customer Cancel Order
+    path("<int:order_id>/cancel/", CancelOrderView.as_view(), name="cancel-order"),
 ]

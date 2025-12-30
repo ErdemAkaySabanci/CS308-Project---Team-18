@@ -40,6 +40,21 @@ function OrderHistoryPage() {
     }
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await apiService.post(`/orders/${orderId}/cancel/`);
+      alert('✅ Order cancelled successfully!');
+      loadOrders(); // Refresh orders
+    } catch (err) {
+      console.error('Cancel error:', err);
+      alert('❌ Failed to cancel order: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   if (loading) {
     return (
       <div style={styles.centerContainer}>
@@ -112,12 +127,34 @@ function OrderHistoryPage() {
 
                 <div style={styles.orderRight}>
                   <h3 style={styles.orderTotal}>{order.total_price} TL</h3>
-                  <button
-                    onClick={() => setOpenOrderId((prev) => (prev === order.id ? null : order.id))}
-                    style={styles.viewButton}
-                  >
-                    {openOrderId === order.id ? '▲ Hide Items' : '▼ View Items'}
-                  </button>
+                  <div style={styles.actionButtons}>
+                    <button
+                      onClick={() => setOpenOrderId((prev) => (prev === order.id ? null : order.id))}
+                      style={styles.viewButton}
+                    >
+                      {openOrderId === order.id ? '▲ Hide Items' : '▼ View Items'}
+                    </button>
+
+                    {/* Cancel Order Button - only for processing orders */}
+                    {order.status === 'processing' && (
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        style={styles.cancelButton}
+                      >
+                        ❌ Cancel Order
+                      </button>
+                    )}
+
+                    {/* Request Refund Button - only for delivered orders */}
+                    {order.status === 'delivered' && (
+                      <Link
+                        to={`/orders/${order.id}/refund`}
+                        style={styles.refundButton}
+                      >
+                        🔄 Request Refund
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -355,6 +392,34 @@ const styles = {
     fontWeight: '600',
     fontSize: '14px',
     transition: 'background-color 0.2s ease',
+  },
+  actionButtons: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  cancelButton: {
+    padding: '10px 20px',
+    backgroundColor: '#DC2626',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px',
+    transition: 'all 0.2s ease',
+  },
+  refundButton: {
+    display: 'inline-block',
+    padding: '10px 20px',
+    backgroundColor: '#F59E0B',
+    color: '#FFFFFF',
+    borderRadius: '10px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
+    textAlign: 'center',
+    transition: 'all 0.2s ease',
   },
 
   // Items

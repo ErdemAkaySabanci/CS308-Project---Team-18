@@ -190,6 +190,44 @@ class OrderDetailView(generics.RetrieveAPIView):
 
 
 # ---------------------------------------------------------
+# 5.5) CUSTOMER CANCEL ORDER
+# ---------------------------------------------------------
+class CancelOrderView(APIView):
+    """
+    Customer dapat membatalkan order yang masih dalam status 'processing'
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Check if order can be cancelled
+        if order.status != 'processing':
+            return Response(
+                {"error": "Only orders in 'processing' status can be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Restore stock for all items
+        for item in order.items.all():
+            item.product.quantity_in_stock += item.quantity
+            item.product.save()
+        
+        # Update order status
+        order.status = 'cancelled'
+        order.add_status_log('cancelled', updated_by=request.user)
+        order.save()
+        
+        # Send email notification
+        send_status_update_email(order, 'cancelled')
+        
+        return Response({
+            "message": "Order cancelled successfully. Stock has been restored.",
+            "order_id": order.id
+        }, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------
 # 6) ORDER STATUS UPDATE (PATCH)
 # ---------------------------------------------------------
 def send_status_update_email(order, new_status):
