@@ -285,8 +285,8 @@ class InvoiceDownloadView(APIView):
         from django.http import FileResponse, Http404
         import os
         
-        # Sales Manager can access all invoices, regular users only their own
-        if hasattr(request.user, 'role') and request.user.role == 'sales_manager':
+        # Sales Manager and Product Manager can access all invoices, regular users only their own
+        if hasattr(request.user, 'role') and request.user.role in ['sales_manager', 'product_manager']:
             order = get_object_or_404(Order, id=order_id)
         else:
             order = get_object_or_404(Order, id=order_id, user=request.user)
@@ -440,19 +440,35 @@ class InvoiceListView(APIView):
             # Invoice listesi oluştur
             invoices = []
             for order in orders:
+                # Order items (ürün bilgileri)
+                items = []
+                for item in order.items.all():
+                    items.append({
+                        "product_id": item.product.id,
+                        "product_name": item.product.name,
+                        "quantity": item.quantity,
+                        "unit_price": float(item.price),
+                        "subtotal": float(item.subtotal)
+                    })
+                
                 invoices.append({
                     "id": order.id,
                     "invoice_number": order.invoice_number,
                     "order_id": order.id,
+                    "user_id": order.user.id,
                     "customer_name": order.user.get_full_name() or order.user.username,
-                    "customer_email": order.user.email,
+                    "user_email": order.user.email,
                     "total_price": float(order.total_price),
                     "created_at": order.created_at.isoformat(),
                     "status": order.status,
+                    "is_completed": order.status == 'delivered',
                     "invoice_url": f"/api/orders/{order.id}/invoice/download/",
                     "delivery_address": order.delivery_address,
                     "payment_method": order.payment_method or "N/A",
-                    "card_last_4": order.card_last_4 or "N/A"
+                    "card_last_4": order.card_last_4 or "N/A",
+                    "items": items,
+                    "item_count": len(items),
+                    "total_quantity": sum(item['quantity'] for item in items)
                 })
             
             return Response({

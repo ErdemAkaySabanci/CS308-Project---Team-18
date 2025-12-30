@@ -297,6 +297,31 @@ const ProductManagerDashboard = () => {
         }
     };
 
+    const handleDownloadInvoice = async (orderId, invoiceNumber) => {
+        const token = localStorage.getItem('access_token');
+        try {
+            const response = await fetch(`http://localhost:8000/api/orders/${orderId}/invoice/download/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Download failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice_${invoiceNumber}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            alert('📥 Invoice downloaded successfully!');
+        } catch (err) {
+            alert('❌ Failed to download invoice: ' + err.message);
+        }
+    };
+
     // =============== COMMENTS ===============
     const fetchPendingComments = async () => {
         setCommentsLoading(true);
@@ -591,31 +616,67 @@ const ProductManagerDashboard = () => {
                             </div>
                         ) : (
                             <div className="pm-table-container">
-                                <table className="pm-table">
+                                <table className="pm-table pm-delivery-table">
                                     <thead>
                                         <tr>
-                                            <th>Order ID</th>
-                                            <th>Invoice #</th>
-                                            <th>Customer</th>
-                                            <th>Total</th>
+                                            <th>Delivery ID</th>
+                                            <th>Customer ID</th>
+                                            <th>Products</th>
+                                            <th>Total Qty</th>
+                                            <th>Total Price</th>
                                             <th>Delivery Address</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
+                                            <th>Completed</th>
+                                            <th>Update Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {orders.map(order => (
-                                            <tr key={order.order_id}>
-                                                <td>#{order.order_id}</td>
-                                                <td>{order.invoice_number || 'N/A'}</td>
-                                                <td>{order.user_email || 'N/A'}</td>
-                                                <td>{order.total_price?.toLocaleString('tr-TR')} TL</td>
+                                            <tr key={order.order_id} className={order.is_completed ? 'completed-row' : ''}>
+                                                <td>
+                                                    <div className="pm-delivery-id">
+                                                        <strong>#{order.order_id}</strong>
+                                                        <button
+                                                            className="pm-invoice-link"
+                                                            onClick={() => handleDownloadInvoice(order.order_id, order.invoice_number)}
+                                                            title="Click to download invoice PDF"
+                                                        >
+                                                            📄 {order.invoice_number}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="pm-customer-info">
+                                                        <strong>#{order.user_id}</strong>
+                                                        <small>{order.customer_name || order.user_email}</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="pm-products-cell">
+                                                        {order.items && order.items.length > 0 ? (
+                                                            order.items.map((item, idx) => (
+                                                                <div key={idx} className="pm-product-item">
+                                                                    <span className="pm-product-id">#{item.product_id}</span>
+                                                                    <span className="pm-product-name">{item.product_name}</span>
+                                                                    <span className="pm-product-qty">×{item.quantity}</span>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <span className="pm-no-items">No items</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="pm-qty-cell">
+                                                    <strong>{order.total_quantity || order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</strong>
+                                                </td>
+                                                <td className="pm-price-cell">
+                                                    <strong>{order.total_price?.toLocaleString('tr-TR')} TL</strong>
+                                                </td>
                                                 <td className="pm-address-cell">
                                                     {order.delivery_address || 'N/A'}
                                                 </td>
                                                 <td>
-                                                    <span className={`pm-status-badge ${order.status}`}>
-                                                        {order.status}
+                                                    <span className={`pm-completed-badge ${order.is_completed || order.status === 'delivered' ? 'yes' : 'no'}`}>
+                                                        {order.is_completed || order.status === 'delivered' ? '✅ Yes' : '⏳ No'}
                                                     </span>
                                                 </td>
                                                 <td>
