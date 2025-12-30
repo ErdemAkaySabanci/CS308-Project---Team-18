@@ -344,7 +344,11 @@ const ProductManagerDashboard = () => {
         try {
             const response = await fetch(`http://localhost:8000/api/reviews/${commentId}/approve/`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'approve' })
             });
 
             if (!response.ok) throw new Error('Failed to approve comment');
@@ -361,9 +365,13 @@ const ProductManagerDashboard = () => {
 
         const token = localStorage.getItem('access_token');
         try {
-            const response = await fetch(`http://localhost:8000/api/reviews/${commentId}/reject/`, {
+            const response = await fetch(`http://localhost:8000/api/reviews/${commentId}/approve/`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'reject' })
             });
 
             if (!response.ok) throw new Error('Failed to reject comment');
