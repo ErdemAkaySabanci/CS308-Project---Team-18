@@ -66,7 +66,7 @@ const AccountPage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUser(data);
@@ -102,7 +102,7 @@ const AccountPage = () => {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
-    
+
     try {
       const token = authService.getToken();
       const response = await fetch('http://127.0.0.1:8000/api/users/me/', {
@@ -186,26 +186,26 @@ const AccountPage = () => {
     <div style={styles.pageWrapper}>
       <div style={styles.sidebar}>
         <div style={styles.userInfo}>
-          <div 
-            style={{...styles.avatar, background: avatar.color}}
+          <div
+            style={{ ...styles.avatar, background: avatar.color }}
             onClick={() => setShowAvatarPicker(!showAvatarPicker)}
           >
             {avatar.emoji}
             <div style={styles.avatarEditBadge}>✏️</div>
           </div>
-          
+
           {showAvatarPicker && (
             <div style={styles.avatarPicker}>
               <div style={styles.avatarPickerHeader}>
                 <h4 style={styles.avatarPickerTitle}>Choose Avatar</h4>
-                <button 
+                <button
                   style={styles.closeButton}
                   onClick={() => setShowAvatarPicker(false)}
                 >
                   ✕
                 </button>
               </div>
-              
+
               <p style={styles.avatarPickerLabel}>Select Icon</p>
               <div style={styles.emojiGrid}>
                 {AVATAR_OPTIONS.map((opt, idx) => (
@@ -221,7 +221,7 @@ const AccountPage = () => {
                   </button>
                 ))}
               </div>
-              
+
               <p style={styles.avatarPickerLabel}>Select Color</p>
               <div style={styles.colorGrid}>
                 {COLOR_OPTIONS.map((color, idx) => (
@@ -238,7 +238,7 @@ const AccountPage = () => {
               </div>
             </div>
           )}
-          
+
           <h3 style={styles.userName}>
             {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.email}
           </h3>
@@ -247,25 +247,25 @@ const AccountPage = () => {
 
         <nav style={styles.nav}>
           <button
-            style={{...styles.navItem, ...(activeTab === 'profile' ? styles.navItemActive : {})}}
+            style={{ ...styles.navItem, ...(activeTab === 'profile' ? styles.navItemActive : {}) }}
             onClick={() => setActiveTab('profile')}
           >
             <span style={styles.navIcon}>👤</span> Profile
           </button>
           <button
-            style={{...styles.navItem, ...(activeTab === 'security' ? styles.navItemActive : {})}}
+            style={{ ...styles.navItem, ...(activeTab === 'security' ? styles.navItemActive : {}) }}
             onClick={() => setActiveTab('security')}
           >
             <span style={styles.navIcon}>🔒</span> Security
           </button>
           <button
-            style={{...styles.navItem, ...(activeTab === 'orders' ? styles.navItemActive : {})}}
+            style={{ ...styles.navItem, ...(activeTab === 'orders' ? styles.navItemActive : {}) }}
             onClick={() => setActiveTab('orders')}
           >
             <span style={styles.navIcon}>📦</span> Orders
           </button>
           <button
-            style={{...styles.navItem, ...(activeTab === 'addresses' ? styles.navItemActive : {})}}
+            style={{ ...styles.navItem, ...(activeTab === 'addresses' ? styles.navItemActive : {}) }}
             onClick={() => setActiveTab('addresses')}
           >
             <span style={styles.navIcon}>📍</span> Addresses
@@ -305,7 +305,7 @@ const AccountPage = () => {
                     <input
                       type="text"
                       value={formData.first_name}
-                      onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                       style={styles.input}
                       placeholder="Enter first name"
                     />
@@ -315,7 +315,7 @@ const AccountPage = () => {
                     <input
                       type="text"
                       value={formData.last_name}
-                      onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                       style={styles.input}
                       placeholder="Enter last name"
                     />
@@ -327,7 +327,7 @@ const AccountPage = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     style={styles.input}
                     placeholder="Enter email"
                   />
@@ -338,7 +338,7 @@ const AccountPage = () => {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     style={styles.input}
                     placeholder="Enter phone number"
                   />
@@ -352,12 +352,20 @@ const AccountPage = () => {
             ) : (
               <div style={styles.profileInfo}>
                 <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>User ID</span>
+                  <span style={styles.infoValue}>#{user?.id || 'N/A'}</span>
+                </div>
+                <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Full Name</span>
                   <span style={styles.infoValue}>{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Email</span>
                   <span style={styles.infoValue}>{user?.email}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Home Address</span>
+                  <span style={styles.infoValue}>{user?.home_address || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Phone</span>
@@ -380,16 +388,16 @@ const AccountPage = () => {
             <form onSubmit={handleChangePassword} style={styles.form}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Current Password</label>
-                <input type="password" value={passwordData.current_password} onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})} style={styles.input} placeholder="Enter current password" required />
+                <input type="password" value={passwordData.current_password} onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })} style={styles.input} placeholder="Enter current password" required />
               </div>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>New Password</label>
-                <input type="password" value={passwordData.new_password} onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})} style={styles.input} placeholder="Enter new password" required minLength="8" />
+                <input type="password" value={passwordData.new_password} onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })} style={styles.input} placeholder="Enter new password" required minLength="8" />
                 <span style={styles.inputHint}>Must be at least 8 characters</span>
               </div>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Confirm New Password</label>
-                <input type="password" value={passwordData.confirm_password} onChange={(e) => setPasswordData({...passwordData, confirm_password: e.target.value})} style={styles.input} placeholder="Confirm new password" required />
+                <input type="password" value={passwordData.confirm_password} onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })} style={styles.input} placeholder="Confirm new password" required />
               </div>
               <button type="submit" style={styles.saveButton}>Update Password</button>
             </form>
