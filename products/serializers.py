@@ -58,3 +58,40 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_review_count(self, obj):
         return obj.reviews.filter(is_approved=True).count()
+
+
+class ProductWriteSerializer(serializers.ModelSerializer):
+    """Ürün oluşturma ve güncelleme için serializer"""
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'model', 'serial_number', 'description',
+            'quantity_in_stock', 'price', 'cost', 'warranty_status',
+            'distributor', 'category', 'image', 'is_active'
+        ]
+        read_only_fields = ['id']
+        extra_kwargs = {
+            'serial_number': {'required': False, 'allow_blank': True},
+            'warranty_status': {'required': False, 'allow_blank': True},
+            'distributor': {'required': False, 'allow_blank': True},
+            'model': {'required': False, 'allow_blank': True},
+            'description': {'required': False, 'allow_blank': True},
+            'image': {'required': False, 'allow_null': True},
+            'cost': {'required': False, 'allow_null': True},
+            'is_active': {'required': False, 'default': True},
+        }
+    
+    def create(self, validated_data):
+        # Eğer cost belirtilmezse, fiyatın %50'si olarak ayarla
+        if 'cost' not in validated_data or validated_data.get('cost') is None:
+            price = validated_data.get('price', 0)
+            validated_data['cost'] = price * 0.5
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Eğer cost belirtilmezse ve price değişiyorsa, cost'u güncelle
+        if 'cost' not in validated_data or validated_data.get('cost') is None:
+            if 'price' in validated_data:
+                validated_data['cost'] = validated_data['price'] * 0.5
+        return super().update(instance, validated_data)

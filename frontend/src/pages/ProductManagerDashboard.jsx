@@ -23,6 +23,8 @@ const ProductManagerDashboard = () => {
         warranty_status: '',
         distributor_info: ''
     });
+    const [productImage, setProductImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     // Categories state
     const [categories, setCategories] = useState([]);
@@ -70,27 +72,42 @@ const ProductManagerDashboard = () => {
         e.preventDefault();
         const token = localStorage.getItem('access_token');
         const url = editingProduct
-            ? `http://localhost:8000/api/products/${editingProduct.id}/`
-            : 'http://localhost:8000/api/products/';
+            ? `http://localhost:8000/api/products-crud/${editingProduct.id}/`
+            : 'http://localhost:8000/api/products-crud/';
         const method = editingProduct ? 'PUT' : 'POST';
 
         try {
+            // FormData kullan (görsel yükleme için)
+            const formData = new FormData();
+            formData.append('name', productForm.name);
+            formData.append('description', productForm.description || '');
+            formData.append('price', parseFloat(productForm.price));
+            formData.append('cost', parseFloat(productForm.cost) || parseFloat(productForm.price) * 0.5);
+            formData.append('quantity_in_stock', parseInt(productForm.quantity_in_stock));
+            formData.append('category', parseInt(productForm.category));
+            formData.append('model', productForm.model || '');
+            formData.append('serial_number', productForm.serial_number || '');
+            formData.append('warranty_status', productForm.warranty_status || '');
+            formData.append('distributor', productForm.distributor_info || '');
+
+            // Görsel varsa ekle
+            if (productImage) {
+                formData.append('image', productImage);
+            }
+
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
+                    // Content-Type header'ı FormData için otomatik ayarlanır
                 },
-                body: JSON.stringify({
-                    ...productForm,
-                    price: parseFloat(productForm.price),
-                    cost: parseFloat(productForm.cost) || parseFloat(productForm.price) * 0.5,
-                    quantity_in_stock: parseInt(productForm.quantity_in_stock),
-                    category: parseInt(productForm.category)
-                })
+                body: formData
             });
 
-            if (!response.ok) throw new Error('Failed to save product');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save product');
+            }
 
             alert(`✅ Product ${editingProduct ? 'updated' : 'added'} successfully!`);
             setShowProductModal(false);
@@ -107,7 +124,7 @@ const ProductManagerDashboard = () => {
 
         const token = localStorage.getItem('access_token');
         try {
-            const response = await fetch(`http://localhost:8000/api/products/${productId}/`, {
+            const response = await fetch(`http://localhost:8000/api/products-crud/${productId}/`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -141,7 +158,7 @@ const ProductManagerDashboard = () => {
     const handleUpdateStock = async (productId, newStock) => {
         const token = localStorage.getItem('access_token');
         try {
-            const response = await fetch(`http://localhost:8000/api/products/${productId}/`, {
+            const response = await fetch(`http://localhost:8000/api/products-crud/${productId}/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -162,6 +179,16 @@ const ProductManagerDashboard = () => {
             name: '', description: '', price: '', cost: '', quantity_in_stock: '',
             category: '', model: '', serial_number: '', warranty_status: '', distributor_info: ''
         });
+        setProductImage(null);
+        setImagePreview(null);
+    };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProductImage(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
     };
 
     // =============== CATEGORIES ===============
@@ -733,6 +760,33 @@ const ProductManagerDashboard = () => {
                                         onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                                         rows="3"
                                     />
+                                </div>
+                                <div className="pm-form-group full-width">
+                                    <label>Product Image</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        className="pm-file-input"
+                                    />
+                                    {imagePreview && (
+                                        <div className="pm-image-preview">
+                                            <img src={imagePreview} alt="Preview" />
+                                            <button
+                                                type="button"
+                                                className="pm-remove-image"
+                                                onClick={() => { setProductImage(null); setImagePreview(null); }}
+                                            >
+                                                ✕ Remove
+                                            </button>
+                                        </div>
+                                    )}
+                                    {editingProduct && editingProduct.image && !imagePreview && (
+                                        <div className="pm-image-preview">
+                                            <p>Current image:</p>
+                                            <img src={editingProduct.image} alt="Current" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="pm-modal-actions">

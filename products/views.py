@@ -5,7 +5,8 @@ from .models import Product, Category
 from .serializers import (
     ProductListSerializer,
     ProductDetailSerializer,
-    CategorySerializer
+    CategorySerializer,
+    ProductWriteSerializer
 )
 
 
@@ -242,3 +243,78 @@ class CategoryViewSet(viewsets.ModelViewSet):
             )
 
         return super().destroy(request, *args, **kwargs)
+
+
+# ---------------------------------------------------------
+# PRODUCT CRUD API (PRODUCT MANAGER)
+# ---------------------------------------------------------
+class ProductViewSet(viewsets.ModelViewSet):
+    """
+    Product CRUD API (Product Manager only)
+
+    GET /products-crud/ - List all products (public)
+    GET /products-crud/<id>/ - Retrieve a product (public)
+    POST /products-crud/ - Create a product (Product Manager only)
+    PUT /products-crud/<id>/ - Update a product (Product Manager only)
+    PATCH /products-crud/<id>/ - Partial update (Product Manager only)
+    DELETE /products-crud/<id>/ - Delete a product (Product Manager only)
+    """
+    queryset = Product.objects.all().select_related('category')
+    authentication_classes = [JWTAuthentication]
+
+    def get_serializer_class(self):
+        """GET için detail serializer, POST/PUT için write serializer"""
+        if self.action in ['list']:
+            return ProductListSerializer
+        elif self.action in ['retrieve']:
+            return ProductDetailSerializer
+        return ProductWriteSerializer
+
+    def get_permissions(self):
+        """
+        GET istekleri için herkes izinli
+        POST, PUT, DELETE için authentication gerekli ve Product Manager rolü kontrolü yapılacak
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = []
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def check_product_manager_role(self, request):
+        """Product Manager role kontrolü"""
+        if not hasattr(request.user, 'role') or request.user.role != 'product_manager':
+            return Response(
+                {"error": "Permission denied. Only Product Managers can perform this action."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return None
+
+    def create(self, request, *args, **kwargs):
+        """Create product - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """Update product - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Partial update product - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete product - Product Manager only"""
+        error_response = self.check_product_manager_role(request)
+        if error_response:
+            return error_response
+        return super().destroy(request, *args, **kwargs)
+
