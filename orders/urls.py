@@ -10,8 +10,10 @@ from .views import (
     RevenueReportView,
     InvoiceListView,
     DeliveryListView,
-    RefundListView,
-    RefundApprovalView,
+    CancelOrderView,
+    RequestRefundView,
+    ApproveRefundView,
+    RefundRequestListView,
 )
 
 urlpatterns = [
@@ -45,7 +47,14 @@ urlpatterns = [
     # Delivery List (Product Manager)
     path("deliveries/", DeliveryListView.as_view(), name="delivery-list"),
     
-    # Refund List & Approval (Sales Manager)
-    path("refunds/pending/", RefundListView.as_view(), name="refund-list"),
-    path("refunds/<int:pk>/approval/", RefundApprovalView.as_view(), name="refund-approval"),
+    # Customer Cancel Order
+    path("<int:order_id>/cancel/", CancelOrderView.as_view(), name="cancel-order"),
+
+    # Refund Request
+    path("<int:order_id>/refund/", RequestRefundView.as_view(), name="request-refund"),
+
+    # Process Refund (Sales Manager)
+    path("refund/<int:refund_id>/process/", ApproveRefundView.as_view(), name="process-refund"),
+    # Refund List (Sales Manager)
+    path("refunds/", RefundRequestListView.as_view(), name="refund-list-all"),
 ]

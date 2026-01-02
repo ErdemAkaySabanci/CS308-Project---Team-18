@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, OrderItem, Refund
+from .models import Order, OrderItem, RefundRequest
 
 
 class OrderItemInline(admin.TabularInline):
@@ -15,7 +15,7 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline]
 
 
-@admin.register(Refund)
-class RefundAdmin(admin.ModelAdmin):
+@admin.register(RefundRequest)
+class RefundRequestAdmin(admin.ModelAdmin):
     list_display = ['id', 'order', 'status', 'refund_amount', 'created_at']
     list_filter = ['status']

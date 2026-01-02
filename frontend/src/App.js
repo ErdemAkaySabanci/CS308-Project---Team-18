@@ -80,6 +80,9 @@ function App() {
         {/* PRODUCT MANAGER */}
         <Route path="/product-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
 
+        {/* PRODUCT MANAGER */}
+        <Route path="/product-manager-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
+
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

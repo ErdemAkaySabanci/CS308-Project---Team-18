@@ -51,12 +51,20 @@ const SalesDashboard = () => {
     const [invoiceStartDate, setInvoiceStartDate] = useState('2024-01-01');
     const [invoiceEndDate, setInvoiceEndDate] = useState('2025-12-31');
     const [invoiceLoading, setInvoiceLoading] = useState(false);
+
     const [invoiceError, setInvoiceError] = useState(null);
+
+    // Refunds state
+    const [refunds, setRefunds] = useState([]);
+    const [refundsLoading, setRefundsLoading] = useState(false);
 
     // Fetch all products for discount management
     useEffect(() => {
         if (activeTab === 'discount') {
             fetchProducts();
+        }
+        if (activeTab === 'refunds') {
+            fetchRefunds();
         }
     }, [activeTab]);
 
@@ -343,6 +351,73 @@ const SalesDashboard = () => {
         }
     };
 
+    // Refund Management
+    const fetchRefunds = async () => {
+        setRefundsLoading(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:8000/api/orders/refunds/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setRefunds(data);
+            }
+        } catch (err) {
+            console.error('Error fetching refunds:', err);
+        } finally {
+            setRefundsLoading(false);
+        }
+    };
+
+    const handleApproveRefund = async (refundId) => {
+        if (!window.confirm('Approve this refund? Stock will be restored.')) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000/api/orders/refund/${refundId}/process/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'approve' })
+            });
+            if (response.ok) {
+                alert('✅ Refund approved!');
+                fetchRefunds();
+            } else {
+                const err = await response.json();
+                alert('Error: ' + err.error);
+            }
+        } catch (err) {
+            alert('Error processing refund');
+        }
+    };
+
+    const handleRejectRefund = async (refundId) => {
+        if (!window.confirm('Reject this refund?')) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000/api/orders/refund/${refundId}/process/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'reject' })
+            });
+            if (response.ok) {
+                alert('Refund rejected.');
+                fetchRefunds();
+            } else {
+                const err = await response.json();
+                alert('Error: ' + err.error);
+            }
+        } catch (err) {
+            alert('Error processing refund');
+        }
+    };
+
     // Chart configurations
     const revenueChartData = revenueData ? {
         labels: ['Revenue', 'Cost', 'Profit/Loss'],
@@ -430,6 +505,12 @@ const SalesDashboard = () => {
                     onClick={() => setActiveTab('invoices')}
                 >
                     📄 Invoices
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'refunds' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('refunds')}
+                >
+                    🔄 Refund Requests
                 </button>
             </div>
 
@@ -787,6 +868,87 @@ const SalesDashboard = () => {
                                 <div className="empty-icon">📄</div>
                                 <h3>No Invoices Found</h3>
                                 <p>Select a date range and click "Fetch Invoices" to view invoices.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {/* Refund Requests Tab */}
+            {activeTab === 'refunds' && (
+                <div className="tab-content">
+                    <div className="card">
+                        <h2>🔄 Refund Requests</h2>
+                        <div className="refresh-container" style={{ marginBottom: '1rem', textAlign: 'right' }}>
+                            <button className="generate-btn" onClick={fetchRefunds}>
+                                🔄 Refresh
+                            </button>
+                        </div>
+
+                        {refundsLoading ? (
+                            <div className="loading-state">
+                                <div className="spinner"></div>
+                                <p>Loading refunds...</p>
+                            </div>
+                        ) : refunds.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="empty-icon">✓</div>
+                                <h3>No Refund Requests</h3>
+                                <p>There are no refund requests to process.</p>
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="invoice-table"> {/* Reusing invoice table styles */}
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Order #</th>
+                                            <th>Customer</th>
+                                            <th>Reason</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {refunds.map(refund => (
+                                            <tr key={refund.id}>
+                                                <td>#{refund.id}</td>
+                                                <td>#{refund.order_id}</td>
+                                                <td>{refund.customer}</td>
+                                                <td>{refund.reason}</td>
+                                                <td>{refund.amount} TL</td>
+                                                <td>
+                                                    <span className={`status-badge status-${refund.status}`}>
+                                                        {refund.status}
+                                                    </span>
+                                                </td>
+                                                <td>{new Date(refund.created_at).toLocaleDateString()}</td>
+                                                <td>
+                                                    {refund.status === 'pending' && (
+                                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                                            <button
+                                                                onClick={() => handleApproveRefund(refund.id)}
+                                                                style={{ backgroundColor: '#4caf50', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleRejectRefund(refund.id)}
+                                                                style={{ backgroundColor: '#f44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {refund.status !== 'pending' && (
+                                                        <span>Processed by {refund.processed_by}</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>

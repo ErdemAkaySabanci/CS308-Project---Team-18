@@ -7,11 +7,12 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils.crypto import get_random_string
+from django.utils import timezone
 from django.conf import settings
 from django.utils import timezone
 
 from cart.models import Cart
-from .models import Order, OrderItem
+from .models import Order, OrderItem, RefundRequest
 from .serializers import OrderSerializer
 from products.models import Product
 
@@ -143,7 +144,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        user = self.request.user
+        # Product managers and sales managers can see all orders
+        if hasattr(user, 'role') and user.role in ['product_manager', 'sales_manager']:
+            return Order.objects.all().order_by('-created_at')
+        # Regular users only see their own orders
+        return Order.objects.filter(user=user).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         user = request.user
@@ -183,6 +189,44 @@ class OrderDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
+
+
+# ---------------------------------------------------------
+# 5.5) CUSTOMER CANCEL ORDER
+# ---------------------------------------------------------
+class CancelOrderView(APIView):
+    """
+    Customer dapat membatalkan order yang masih dalam status 'processing'
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Check if order can be cancelled
+        if order.status != 'processing':
+            return Response(
+                {"error": "Only orders in 'processing' status can be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Restore stock for all items
+        for item in order.items.all():
+            item.product.quantity_in_stock += item.quantity
+            item.product.save()
+        
+        # Update order status
+        order.status = 'cancelled'
+        order.add_status_log('cancelled', updated_by=request.user)
+        order.save()
+        
+        # Send email notification
+        send_status_update_email(order, 'cancelled')
+        
+        return Response({
+            "message": "Order cancelled successfully. Stock has been restored.",
+            "order_id": order.id
+        }, status=status.HTTP_200_OK)
 
 
 # ---------------------------------------------------------
@@ -281,8 +325,8 @@ class InvoiceDownloadView(APIView):
         from django.http import FileResponse, Http404
         import os
         
-        # Sales Manager can access all invoices, regular users only their own
-        if hasattr(request.user, 'role') and request.user.role == 'sales_manager':
+        # Sales Manager and Product Manager can access all invoices, regular users only their own
+        if hasattr(request.user, 'role') and request.user.role in ['sales_manager', 'product_manager']:
             order = get_object_or_404(Order, id=order_id)
         else:
             order = get_object_or_404(Order, id=order_id, user=request.user)
@@ -407,10 +451,10 @@ class InvoiceListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Role kontrolü - sadece sales_manager erişebilir
-        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+        # Role kontrolü - sales_manager ve product_manager erişebilir
+        if not hasattr(request.user, 'role') or request.user.role not in ['sales_manager', 'product_manager']:
             return Response(
-                {"error": "Permission denied. Only Sales Managers can access invoices."},
+                {"error": "Permission denied. Only Sales Managers and Product Managers can access invoices."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -436,19 +480,35 @@ class InvoiceListView(APIView):
             # Invoice listesi oluştur
             invoices = []
             for order in orders:
+                # Order items (ürün bilgileri)
+                items = []
+                for item in order.items.all():
+                    items.append({
+                        "product_id": item.product.id,
+                        "product_name": item.product.name,
+                        "quantity": item.quantity,
+                        "unit_price": float(item.price),
+                        "subtotal": float(item.subtotal)
+                    })
+                
                 invoices.append({
                     "id": order.id,
                     "invoice_number": order.invoice_number,
                     "order_id": order.id,
+                    "user_id": order.user.id,
                     "customer_name": order.user.get_full_name() or order.user.username,
-                    "customer_email": order.user.email,
+                    "user_email": order.user.email,
                     "total_price": float(order.total_price),
                     "created_at": order.created_at.isoformat(),
                     "status": order.status,
+                    "is_completed": order.status == 'delivered',
                     "invoice_url": f"/api/orders/{order.id}/invoice/download/",
                     "delivery_address": order.delivery_address,
                     "payment_method": order.payment_method or "N/A",
-                    "card_last_4": order.card_last_4 or "N/A"
+                    "card_last_4": order.card_last_4 or "N/A",
+                    "items": items,
+                    "item_count": len(items),
+                    "total_quantity": sum(item['quantity'] for item in items)
                 })
             
             return Response({
@@ -496,75 +556,156 @@ class DeliveryListView(generics.ListAPIView):
 
 
 # ---------------------------------------------------------
-# 10) REFUND LIST AND APPROVAL (SALES MANAGER)
+# 10) CUSTOMER REFUND REQUEST
 # ---------------------------------------------------------
-from .models import Refund
-from .serializers import RefundSerializer
+class RequestRefundView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-class RefundListView(generics.ListAPIView):
-    """
-    Refund List for Sales Manager
-    Lists all refunds with status 'pending'
-    """
-    serializer_class = RefundSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
 
-    def get_queryset(self):
-        # Allow only sales_manager
-        if self.request.user.role != 'sales_manager' and not self.request.user.is_staff:
-             return Refund.objects.none()
-
-        return Refund.objects.filter(status='pending').order_by('created_at')
-
-    def list(self, request, *args, **kwargs):
-        if self.request.user.role != 'sales_manager' and not self.request.user.is_staff:
+        # Check if already refunded or requested
+        if order.status in ['refund_requested', 'refunded']:
             return Response(
-                {"error": "Permission denied. Only Sales Managers can view refunds."},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "Refund already requested or processed for this order."},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        return super().list(request, *args, **kwargs)
+
+        # Check if eligible for refund (must be delivered)
+        if order.status != 'delivered':
+             return Response(
+                {"error": "Only delivered orders can be refunded."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get('reason', '')
+        if not reason:
+             return Response(
+                {"error": "Refund reason is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create Refund Request
+        RefundRequest.objects.create(
+            order=order,
+            reason=reason,
+            refund_amount=order.total_price, # Default to full refund for now
+            status='pending'
+        )
+
+        # Update Order Status
+        old_status = order.status
+        order.status = 'refund_requested'
+        order.add_status_log('refund_requested', updated_by=request.user)
+        order.save()
+
+        # Send Email (Optional - reusing status update email or custom)
+        # send_status_update_email(order, 'refund_requested') # We can implement this if needed
+
+        return Response({
+            "message": "Refund requested successfully. It is now pending approval.",
+            "order_id": order.id
+        }, status=status.HTTP_201_CREATED)
 
 
-class RefundApprovalView(APIView):
-    """
-    Approve or Reject a refund request
-    """
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+# ---------------------------------------------------------
+# 10) APPROVE/REJECT REFUND (SALES MANAGER)
+# ---------------------------------------------------------
+class ApproveRefundView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, pk):
-        if request.user.role != 'sales_manager' and not request.user.is_staff:
+    def post(self, request, refund_id):
+        # Role check
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
             return Response(
                 {"error": "Permission denied. Only Sales Managers can approve refunds."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        refund = get_object_or_404(Refund, pk=pk)
+        refund_req = get_object_or_404(RefundRequest, id=refund_id)
         action = request.data.get('action') # 'approve' or 'reject'
 
-        if action == 'approve':
-            refund.status = 'approved'
-            refund.processed_at = timezone.now()
-            refund.processed_by = request.user
-            refund.save()
-            
-            # If we had wallet/payment integration, we would trigger refund logic here.
-            # Update order/item status if needed? 
-            # Ideally, if all items refunded, order -> refunded.
-            # For now, just focus on Refund object status.
-            
-            return Response({"message": "Refund approved successfully."})
-        
-        elif action == 'reject':
-            refund.status = 'rejected'
-            refund.processed_at = timezone.now()
-            refund.processed_by = request.user
-            refund.save()
-            return Response({"message": "Refund rejected."})
-        
-        else:
-            return Response(
-                {"error": "Invalid action. Use 'approve' or 'reject'."}, 
+        if action not in ['approve', 'reject']:
+             return Response(
+                {"error": "Invalid action. Must be 'approve' or 'reject'."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if refund_req.status != 'pending':
+            return Response(
+                {"error": "This refund request has already been processed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if action == 'approve':
+            # Approve Refund
+            refund_req.status = 'approved'
+            refund_req.processed_at = timezone.now()
+            refund_req.processed_by = request.user
+            refund_req.save()
+
+            # Update Order Status
+            order = refund_req.order
+            order.status = 'refunded'
+            order.add_status_log('refunded', updated_by=request.user)
+            order.save()
+
+            # Restore Stock
+            for item in order.items.all():
+                item.product.quantity_in_stock += item.quantity
+                item.product.save()
+
+            return Response({"message": "Refund approved and stock restored."}, status=200)
+
+        elif action == 'reject':
+            # Reject Refund
+            refund_req.status = 'rejected'
+            refund_req.processed_at = timezone.now()
+            refund_req.processed_by = request.user
+            refund_req.save()
+
+            # Revert Order Status to Delivered (or keep as is, but logic suggests we revert if rejected)
+            # Or we can introduce a 'refund_rejected' status if we want to be explicit.
+            # For now, let's set it back to 'delivered' so they can maybe try again or just see it valid.
+            order = refund_req.order
+            order.status = 'delivered'
+            order.add_status_log('delivered', updated_by=request.user)
+            order.save()
+
+            return Response({"message": "Refund rejected."}, status=200)
+
+# ---------------------------------------------------------
+# 11) LIST REFUND REQUESTS (SALES MANAGER)
+# ---------------------------------------------------------
+class RefundRequestListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Role check
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can view refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        status_filter = request.query_params.get('status')
+        refunds = RefundRequest.objects.all().order_by('-created_at')
+
+        if status_filter:
+            refunds = refunds.filter(status=status_filter)
+
+        data = []
+        for r in refunds:
+            data.append({
+                "id": r.id,
+                "order_id": r.order.id,
+                "customer": r.order.user.get_full_name() or r.order.user.username,
+                "reason": r.reason,
+                "status": r.status,
+                "amount": r.refund_amount if r.refund_amount else r.order.total_price,
+                "created_at": r.created_at,
+                "processed_at": r.processed_at,
+                "processed_by": r.processed_by.username if r.processed_by else None
+            })
+
+        return Response(data, status=200)

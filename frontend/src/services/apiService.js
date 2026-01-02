@@ -132,6 +132,7 @@ export const apiService = {
   checkout: () => apiService.post("/orders/checkout/", {}),
   getOrderHistory: () => apiService.get("/orders/history/"),
   getInvoiceDetail: (id) => apiService.get(`/orders/invoice/${id}/`),
+  requestRefund: (orderId, reason) => apiService.post(`/orders/${orderId}/refund/`, { reason }),
 
   // -------------------------------
   // User Address

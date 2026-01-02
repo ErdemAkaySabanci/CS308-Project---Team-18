@@ -21,6 +21,7 @@ urlpatterns = [
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('apply-discount/', ApplyDiscountView.as_view(), name='apply-discount'),
-    # CategoryViewSet endpoints (CRUD)
+    # CategoryViewSet and ProductViewSet endpoints (CRUD)
     path('', include(router.urls)),
 ]
+
