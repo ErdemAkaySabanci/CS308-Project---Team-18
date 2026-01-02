@@ -1,0 +1,273 @@
+/* Main Container */
+.sa-dashboard-container {
+    display: flex;
+    height: calc(100vh - 80px);
+    /* Adjust based on navbar height */
+    background-color: #f5f7fa;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+/* 1. Conversation Sidebar (Left) */
+.sa-sidebar {
+    width: 300px;
+    background-color: white;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sa-sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.sa-sidebar-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.sa-filter-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.filter-btn {
+    border: none;
+    background: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.filter-btn.active {
+    background-color: #e3f2fd;
+    color: #2196f3;
+    font-weight: bold;
+}
+
+.sa-conversation-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.conversation-item:hover {
+    background-color: #f9f9f9;
+}
+
+.conversation-item.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.conversation-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.time {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.last-msg {
+    font-size: 0.9rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 2. Chat Area (Middle) */
+.sa-chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+}
+
+.chat-empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 1.2rem;
+}
+
+.active-chat-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+}
+
+.active-chat-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.resolve-btn {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sa-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #f5f7fa;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sa-message {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 10px;
+    line-height: 1.5;
+    position: relative;
+}
+
+.sa-message.received {
+    /* Customer */
+    align-self: flex-start;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-top-left-radius: 0;
+}
+
+.sa-message.sent {
+    /* Agent */
+    align-self: flex-end;
+    background-color: #2196f3;
+    color: white;
+    border-top-right-radius: 0;
+}
+
+.msg-time {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-top: 5px;
+    text-align: right;
+}
+
+.sa-input-area {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+}
+
+.sa-input-area input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+}
+
+.sa-send-btn {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 3. Customer Info Panel (Right) */
+.sa-info-panel {
+    width: 320px;
+    background-color: white;
+    border-left: 1px solid #e0e0e0;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.info-section {
+    margin-bottom: 30px;
+}
+
+.info-section h3 {
+    font-size: 1rem;
+    color: #333;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.info-card {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.label {
+    color: #666;
+}
+
+.value {
+    font-weight: 500;
+    color: #333;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    background-color: #e0e0e0;
+}
+
+.status-badge.processing {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.delivered {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.empty-info {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+}

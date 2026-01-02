@@ -7,6 +7,8 @@ import Login from "./components/Login";
 import Register from "./pages/RegisterPage";
 import Dashboard from "./components/Dashboard";
 import AccountPage from "./pages/AccountPage";
+import RefundApprovalPage from "./pages/RefundApprovalPage";
+import SupportAgentDashboard from "./pages/SupportAgentDashboard";
 import { authService } from "./services/authService";
 
 // Pages
@@ -74,8 +76,10 @@ function App() {
         {/* SALES MANAGER */}
         <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
 
-        {/* PRODUCT MANAGER */}
         <Route path="/product-manager-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
+
+        {/* SUPPORT AGENT */}
+        <Route path="/support-dashboard" element={<ProtectedRoute><SupportAgentDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />
