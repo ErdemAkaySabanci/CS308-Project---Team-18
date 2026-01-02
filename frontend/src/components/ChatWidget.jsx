@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import './ChatWidget.css';
 import { apiService } from '../services/apiService';
 import { authService } from '../services/authService';
+import useWebSocket from '../hooks/useWebSocket';
 
 const ChatWidget = () => {
     const location = useLocation();
@@ -16,7 +17,10 @@ const ChatWidget = () => {
     const [inputText, setInputText] = useState('');
     const [conversationId, setConversationId] = useState(null);
     const [loading, setLoading] = useState(false);
-    const ws = useRef(null);
+
+    // UI States
+    const [isAgentTyping, setIsAgentTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
     const messagesEndRef = useRef(null);
 
     // Create or get existing conversation
@@ -26,34 +30,36 @@ const ChatWidget = () => {
         }
     }, [isOpen]);
 
-    // WebSocket connection
-    useEffect(() => {
-        if (conversationId) {
-            // Connect WebSocket
-            ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${conversationId}/`);
-
-            ws.current.onopen = () => console.log('Customer connected to chat');
-
-            ws.current.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                setMessages(prev => [...prev, data]);
-            };
-
-            ws.current.onclose = () => console.log('Customer disconnected from chat');
-
-            // Fetch existing messages
-            fetchMessages();
+    // WebSocket Hook
+    const { isConnected, sendMessage, sendTyping } = useWebSocket(
+        conversationId ? `ws://127.0.0.1:8000/ws/chat/${conversationId}/` : null,
+        {
+            autoConnect: !!conversationId,
+            onMessage: (data) => {
+                // Handle different message types
+                if (data.type === 'typing') {
+                    if (!data.is_customer) { // If agent is typing
+                        setIsAgentTyping(true);
+                        // Clear existing timeout
+                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                        // Set new timeout to hide typing indicator
+                        typingTimeoutRef.current = setTimeout(() => setIsAgentTyping(false), 3000);
+                    }
+                } else {
+                    // Start standard chat message
+                    setMessages(prev => [...prev, data]);
+                    setIsAgentTyping(false); // Hide typing when message received
+                }
+            },
+            onOpen: () => console.log('Customer connected to chat'),
+            onClose: () => console.log('Customer disconnected from chat')
         }
-
-        return () => {
-            if (ws.current) ws.current.close();
-        };
-    }, [conversationId]);
+    );
 
     // Auto scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isAgentTyping, isOpen]);
 
     const initializeConversation = async () => {
         setLoading(true);
@@ -71,6 +77,7 @@ const ChatWidget = () => {
     };
 
     const fetchMessages = async () => {
+        if (!conversationId) return;
         try {
             const data = await apiService.getChatMessages(conversationId);
             if (data) {
@@ -80,6 +87,13 @@ const ChatWidget = () => {
             console.error('Failed to fetch messages', error);
         }
     };
+
+    // Initial message fetch when conversation ID is set
+    useEffect(() => {
+        if (conversationId) {
+            fetchMessages();
+        }
+    }, [conversationId]);
 
     const getOrCreateSessionKey = () => {
         const user = authService.getCurrentUser();
@@ -98,6 +112,13 @@ const ChatWidget = () => {
         return sessionKey;
     };
 
+    const handleInputChange = (e) => {
+        setInputText(e.target.value);
+        if (conversationId && isConnected) {
+            sendTyping();
+        }
+    };
+
     const handleSendMessage = async () => {
         if (!inputText.trim() || !conversationId) return;
 
@@ -105,6 +126,7 @@ const ChatWidget = () => {
         setInputText('');
 
         try {
+            // Send via API for persistence (standard flow)
             const newMessage = await apiService.sendChatMessage(conversationId, messageText);
             if (newMessage) {
                 setMessages(prev => [...prev, newMessage]);
@@ -149,7 +171,9 @@ const ChatWidget = () => {
                             <span className="header-icon">💬</span>
                             <div>
                                 <h4>Canlı Destek</h4>
-                                <p className="header-status">🟢 Online</p>
+                                <p className="header-status">
+                                    {isConnected ? '🟢 Online' : '🔴 Bağlantı Kopuk'}
+                                </p>
                             </div>
                         </div>
                         <button
@@ -181,6 +205,15 @@ const ChatWidget = () => {
                                 </div>
                             ))
                         )}
+
+                        {isAgentTyping && (
+                            <div className="chat-message agent">
+                                <div className="message-bubble typing-indicator">
+                                    <span>•</span><span>•</span><span>•</span>
+                                </div>
+                            </div>
+                        )}
+
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -189,7 +222,7 @@ const ChatWidget = () => {
                             type="text"
                             placeholder="Mesajınızı yazın..."
                             value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
+                            onChange={handleInputChange}
                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                             disabled={loading || !conversationId}
                         />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SupportAgentDashboard.css';
 import { apiService } from '../services/apiService';
+import useWebSocket from '../hooks/useWebSocket';
 
 const SupportAgentDashboard = () => {
     const [conversations, setConversations] = useState([]);
@@ -9,7 +10,10 @@ const SupportAgentDashboard = () => {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [customerInfo, setCustomerInfo] = useState(null);
-    const ws = useRef(null);
+
+    // Typing states
+    const [isCustomerTyping, setIsCustomerTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
     const messagesEndRef = useRef(null);
 
     // Initial Load - Fetch conversations from API
@@ -17,40 +21,51 @@ const SupportAgentDashboard = () => {
         fetchConversations();
     }, []);
 
-    // Fetch messages when active chat changes
+    // WebSocket Hook
+    const { isConnected, sendMessage, sendTyping } = useWebSocket(
+        activeChat ? `ws://127.0.0.1:8000/ws/chat/${activeChat.id}/` : null,
+        {
+            autoConnect: !!activeChat,
+            onMessage: (data) => {
+                // Handle different message types
+                if (data.type === 'typing') {
+                    if (data.is_customer) { // If customer is typing
+                        setIsCustomerTyping(true);
+                        // Clear existing timeout
+                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                        // Set new timeout to hide typing indicator
+                        typingTimeoutRef.current = setTimeout(() => setIsCustomerTyping(false), 3000);
+                    }
+                } else {
+                    // Start standard chat message
+                    setMessages((prev) => [...prev, data]);
+                    setIsCustomerTyping(false);
+                }
+            },
+            onOpen: () => console.log('Support Agent Connected to Chat'),
+            onClose: () => console.log('Support Agent Disconnected from Chat')
+        }
+    );
+
+    // Fetch messages and customer info when active chat changes
     useEffect(() => {
         if (activeChat) {
             fetchMessages(activeChat.id);
-
-            // WebSocket connection (optional - for real-time)
-            if (ws.current) ws.current.close();
-            ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${activeChat.id}/`);
-
-            ws.current.onopen = () => console.log('WebSocket Connected');
-            ws.current.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                setMessages((prev) => [...prev, data]);
-            };
-            ws.current.onclose = () => console.log('WebSocket Disconnected');
+            if (activeChat.customer?.id) {
+                fetchCustomerInfo(activeChat.customer.id);
+            } else {
+                setCustomerInfo(null);
+            }
         }
         return () => {
-            if (ws.current) ws.current.close();
+            setIsCustomerTyping(false);
         };
-    }, [activeChat]);
-
-    // Fetch Customer Details when active chat changes
-    useEffect(() => {
-        if (activeChat && activeChat.customer?.id) {
-            fetchCustomerInfo(activeChat.customer.id);
-        } else {
-            setCustomerInfo(null);
-        }
     }, [activeChat]);
 
     // Scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isCustomerTyping]);
 
     const fetchConversations = async () => {
         setLoading(true);
@@ -94,9 +109,18 @@ const SupportAgentDashboard = () => {
             await apiService.claimConversation(activeChat.id);
             alert('✅ Sohbet başarıyla alındı!');
             fetchConversations();
+            // Update local state to reflect change immediately
+            setActiveChat(prev => ({ ...prev, is_claimed: true }));
         } catch (error) {
             console.error('Failed to claim chat', error);
             alert('❌ Sohbet alınamadı');
+        }
+    };
+
+    const handleInputChange = (e) => {
+        setInputText(e.target.value);
+        if (activeChat && isConnected) {
+            sendTyping();
         }
     };
 
@@ -188,7 +212,12 @@ const SupportAgentDashboard = () => {
                 {activeChat ? (
                     <>
                         <div className="active-chat-header">
-                            <h3>{getCustomerName(activeChat)}</h3>
+                            <div>
+                                <h3>{getCustomerName(activeChat)}</h3>
+                                <div className="connection-status">
+                                    {isConnected ? '🟢 Online' : '🔴 Bağlantı Kopuk'}
+                                </div>
+                            </div>
                             <div className="header-actions">
                                 {!activeChat.is_claimed && (
                                     <button className="claim-btn" onClick={handleClaimChat}>
@@ -214,6 +243,15 @@ const SupportAgentDashboard = () => {
                                     </div>
                                 ))
                             )}
+
+                            {isCustomerTyping && (
+                                <div className="sa-message received">
+                                    <div className="typing-indicator">
+                                        <span>•</span><span>•</span><span>•</span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div ref={messagesEndRef} />
                         </div>
                         <div className="sa-input-area">
@@ -221,10 +259,17 @@ const SupportAgentDashboard = () => {
                                 type="text"
                                 placeholder="Mesajınızı yazın..."
                                 value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
+                                onChange={handleInputChange}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                disabled={!isConnected}
                             />
-                            <button className="sa-send-btn" onClick={handleSendMessage}>➤</button>
+                            <button
+                                className="sa-send-btn"
+                                onClick={handleSendMessage}
+                                disabled={!isConnected || !inputText.trim()}
+                            >
+                                ➤
+                            </button>
                         </div>
                     </>
                 ) : (
