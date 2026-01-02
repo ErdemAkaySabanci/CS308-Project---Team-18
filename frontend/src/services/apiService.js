@@ -146,4 +146,17 @@ export const apiService = {
   getChatMessages: (conversationId) => apiService.get(`/chat/conversations/${conversationId}/messages/`),
   sendChatMessage: (conversationId, message) => apiService.post(`/chat/conversations/${conversationId}/messages/send/`, { message }),
   getCustomerInfo: (userId) => apiService.get(`/chat/customer/${userId}/`),
+
+  // -------------------------------
+  // ADMIN
+  // -------------------------------
+  getAdminStatistics: () => apiService.get('/users/admin/statistics/'),
+  getAdminUsers: (params) => apiService.get('/users/admin/users/', { params }),
+  updateUserRole: (userId, data) => apiService.put(`/users/admin/users/${userId}/`, data),
+  getAdminAnalytics: () => apiService.get('/users/admin/analytics/'),
+
+  getAdminProducts: (params) => apiService.get('/users/admin/products/', { params }),
+  deleteAdminProduct: (id) => apiService.delete(`/users/admin/products/${id}/`),
+  getAdminOrders: (params) => apiService.get('/users/admin/orders/', { params }),
+  updateAdminOrderStatus: (id, status) => apiService.put(`/users/admin/orders/${id}/`, { status }),
 };

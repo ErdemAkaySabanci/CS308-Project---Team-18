@@ -40,7 +40,8 @@ const AccountPage = () => {
     first_name: '',
     last_name: '',
     email: '',
-    phone: ''
+    phone: '',
+    tax_id: ''
   });
   const [passwordData, setPasswordData] = useState({
     current_password: '',
@@ -74,7 +75,8 @@ const AccountPage = () => {
           first_name: data.first_name || '',
           last_name: data.last_name || '',
           email: data.email || '',
-          phone: data.phone || ''
+          phone: data.phone || '',
+          tax_id: data.tax_id || ''
         });
       } else if (response.status === 401) {
         authService.logout();
@@ -344,6 +346,17 @@ const AccountPage = () => {
                   />
                 </div>
 
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Tax ID</label>
+                  <input
+                    type="text"
+                    value={formData.tax_id}
+                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                    style={styles.input}
+                    placeholder="Enter Tax ID"
+                  />
+                </div>
+
                 <div style={styles.buttonGroup}>
                   <button type="button" style={styles.cancelButton} onClick={() => setEditing(false)}>Cancel</button>
                   <button type="submit" style={styles.saveButton}>Save Changes</button>
@@ -370,6 +383,10 @@ const AccountPage = () => {
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Phone</span>
                   <span style={styles.infoValue}>{user?.phone || 'Not set'}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Tax ID</span>
+                  <span style={styles.infoValue}>{user?.tax_id || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Member Since</span>

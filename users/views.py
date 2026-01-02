@@ -56,6 +56,7 @@ def login_view(request):
                     'username': user.username,
                     'email': user.email,
                     'role': user.role,
+                    'is_superuser': user.is_superuser,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                 }
