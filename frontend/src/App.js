@@ -23,6 +23,7 @@ import ProductManagerDashboard from "./pages/ProductManagerDashboard";
 
 // Components
 import Navbar from "./components/Navbar";
+import ChatWidget from "./components/ChatWidget";
 
 // Route Guards
 const ProtectedRoute = ({ children }) => {
@@ -84,6 +85,7 @@ function App() {
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatWidget />
     </Router>
   );
 }
