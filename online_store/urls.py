@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/cart/', include('cart.urls')),
     path('api/orders/', include('orders.urls')),
     path('api/reviews/', include('reviews.urls')),  # Reviews API
+    path('api/chat/', include('chat.urls')),  # Chat/Support API
 ]
 
 # Media files for development

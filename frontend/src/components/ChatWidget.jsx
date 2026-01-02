@@ -1,103 +1,132 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './ChatWidget.css';
+import { apiService } from '../services/apiService';
+import { authService } from '../services/authService';
 
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null);
+    const [conversationId, setConversationId] = useState(null);
+    const [loading, setLoading] = useState(false);
     const ws = useRef(null);
     const messagesEndRef = useRef(null);
 
-    // Auto-scroll to bottom of messages
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
+    // Create or get existing conversation
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isOpen]);
+        if (isOpen && !conversationId) {
+            initializeConversation();
+        }
+    }, [isOpen]);
 
     // WebSocket connection
     useEffect(() => {
-        if (isOpen && !ws.current) {
-            // Connect specifically when the widget is opened
-            // URL should be adjusted based on environment/config
-            const wsUrl = `ws://127.0.0.1:8000/ws/customer-chat/`;
-            ws.current = new WebSocket(wsUrl);
+        if (conversationId) {
+            // Connect WebSocket
+            ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${conversationId}/`);
 
-            ws.current.onopen = () => {
-                console.log('Connected to Chat WebSocket');
-            };
+            ws.current.onopen = () => console.log('Customer connected to chat');
 
             ws.current.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                setMessages((prev) => [...prev, { ...data, type: 'received' }]);
+                setMessages(prev => [...prev, data]);
             };
 
-            ws.current.onclose = () => {
-                console.log('Chat WebSocket disconnected');
-                ws.current = null;
-            };
+            ws.current.onclose = () => console.log('Customer disconnected from chat');
 
-            ws.current.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
+            // Fetch existing messages
+            fetchMessages();
         }
 
-        // Cleanup on unmount or when closed (optional: keep open if desired)
         return () => {
-            if (!isOpen && ws.current) {
-                ws.current.close();
-                ws.current = null;
+            if (ws.current) ws.current.close();
+        };
+    }, [conversationId]);
+
+    // Auto scroll
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const initializeConversation = async () => {
+        setLoading(true);
+        try {
+            const sessionKey = getOrCreateSessionKey();
+            const data = await apiService.createConversation(sessionKey);
+            if (data) {
+                setConversationId(data.id);
             }
-        };
-    }, [isOpen]);
+        } catch (error) {
+            console.error('Failed to create conversation', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const handleSendMessage = () => {
-        if ((!inputText.trim() && !selectedFile) || !ws.current) return;
+    const fetchMessages = async () => {
+        try {
+            const data = await apiService.getChatMessages(conversationId);
+            if (data) {
+                setMessages(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch messages', error);
+        }
+    };
 
-        const messageData = {
-            message: inputText,
-            file: selectedFile ? { name: selectedFile.name, size: selectedFile.size } : null,
-            // In a real app, you might upload the file to an endpoint and send the URL, 
-            // or send base64 data here. For simplicity, we're sending metadata or text.
-        };
+    const getOrCreateSessionKey = () => {
+        const user = authService.getCurrentUser();
 
-        // If file selection needs to be handled via HTTP upload mostly, 
-        // we can implement a separate API call here. 
-        // For now assuming the backend handles basic JSON messages.
+        // If logged in, use user-specific session key
+        if (user) {
+            return `user_${user.id}_${user.email}`;
+        }
 
-        ws.current.send(JSON.stringify(messageData));
+        // For guests, use random session key
+        let sessionKey = localStorage.getItem('chat_session_key');
+        if (!sessionKey) {
+            sessionKey = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('chat_session_key', sessionKey);
+        }
+        return sessionKey;
+    };
 
-        setMessages((prev) => [
-            ...prev,
-            { message: inputText, type: 'sent', file: selectedFile ? selectedFile.name : null },
-        ]);
+    const handleSendMessage = async () => {
+        if (!inputText.trim() || !conversationId) return;
 
+        const messageText = inputText;
         setInputText('');
-        setSelectedFile(null);
-    };
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            handleSendMessage();
+        try {
+            const newMessage = await apiService.sendChatMessage(conversationId, messageText);
+            if (newMessage) {
+                setMessages(prev => [...prev, newMessage]);
+            }
+        } catch (error) {
+            console.error('Failed to send message', error);
+            // Optimistic UI - add message anyway
+            setMessages(prev => [...prev, {
+                message: messageText,
+                is_customer: true,
+                created_at: new Date().toISOString()
+            }]);
         }
     };
 
-    const handleFileSelect = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
-        }
+    const formatTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
-        <div className="chat-widget-container">
+        <>
             {/* Floating Button */}
             {!isOpen && (
                 <button
                     className="chat-widget-button"
                     onClick={() => setIsOpen(true)}
+                    title="Canlı Destek"
                 >
                     💬
                 </button>
@@ -105,57 +134,67 @@ const ChatWidget = () => {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="chat-window">
-                    {/* Header */}
-                    <div className="chat-header">
-                        <span>Customer Support</span>
-                        <button className="close-button" onClick={() => setIsOpen(false)}>
-                            ✖
+                <div className="chat-widget-window">
+                    <div className="chat-widget-header">
+                        <div className="header-info">
+                            <span className="header-icon">💬</span>
+                            <div>
+                                <h4>Canlı Destek</h4>
+                                <p className="header-status">🟢 Online</p>
+                            </div>
+                        </div>
+                        <button
+                            className="close-btn"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            ✕
                         </button>
                     </div>
 
-                    {/* Messages */}
-                    <div className="chat-messages">
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`message ${msg.type}`}>
-                                {msg.message}
-                                {msg.file && (
-                                    <div className="file-attachment">
-                                        📎 {msg.file}
-                                    </div>
-                                )}
+                    <div className="chat-widget-messages">
+                        {loading ? (
+                            <div className="loading-message">Bağlanıyor...</div>
+                        ) : messages.length === 0 ? (
+                            <div className="welcome-message">
+                                <span className="welcome-icon">👋</span>
+                                <p>Merhaba! Size nasıl yardımcı olabiliriz?</p>
                             </div>
-                        ))}
+                        ) : (
+                            messages.map((msg, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`chat-message ${msg.is_customer ? 'customer' : 'agent'}`}
+                                >
+                                    <div className="message-bubble">
+                                        {msg.message}
+                                        <div className="message-time">{formatTime(msg.created_at)}</div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input Area */}
-                    <div className="chat-input-area">
-                        <label htmlFor="file-upload" className="file-upload-label" title="Attach file">
-                            📎
-                            <input
-                                id="file-upload"
-                                type="file"
-                                style={{ display: 'none' }}
-                                onChange={handleFileSelect}
-                            />
-                        </label>
-                        {selectedFile && <span style={{ fontSize: '10px' }}>{selectedFile.name.substring(0, 10)}...</span>}
+                    <div className="chat-widget-input">
                         <input
                             type="text"
-                            className="chat-input"
-                            placeholder="Type a message..."
+                            placeholder="Mesajınızı yazın..."
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
-                            onKeyPress={handleKeyPress}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            disabled={loading || !conversationId}
                         />
-                        <button className="send-button" onClick={handleSendMessage}>
+                        <button
+                            className="send-btn"
+                            onClick={handleSendMessage}
+                            disabled={!inputText.trim() || loading || !conversationId}
+                        >
                             ➤
                         </button>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

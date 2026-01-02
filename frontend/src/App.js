@@ -7,7 +7,6 @@ import Login from "./components/Login";
 import Register from "./pages/RegisterPage";
 import Dashboard from "./components/Dashboard";
 import AccountPage from "./pages/AccountPage";
-import RefundApprovalPage from "./pages/RefundApprovalPage";
 import SupportAgentDashboard from "./pages/SupportAgentDashboard";
 import { authService } from "./services/authService";
 
@@ -24,6 +23,7 @@ import ProductManagerDashboard from "./pages/ProductManagerDashboard";
 // Components
 import Navbar from "./components/Navbar";
 import ChatWidget from "./components/ChatWidget";
+
 
 // Route Guards
 const ProtectedRoute = ({ children }) => {
@@ -85,6 +85,8 @@ function App() {
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Floating Chat Widget - available on all pages */}
       <ChatWidget />
     </Router>
   );

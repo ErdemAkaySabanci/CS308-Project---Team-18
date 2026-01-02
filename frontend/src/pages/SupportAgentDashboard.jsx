@@ -4,7 +4,7 @@ import { apiService } from '../services/apiService';
 
 const SupportAgentDashboard = () => {
     const [conversations, setConversations] = useState([]);
-    const [filter, setFilter] = useState('active'); // active, pending, closed
+    const [loading, setLoading] = useState(true);
     const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
@@ -12,35 +12,27 @@ const SupportAgentDashboard = () => {
     const ws = useRef(null);
     const messagesEndRef = useRef(null);
 
-    // Initial Load
+    // Initial Load - Fetch conversations from API
     useEffect(() => {
         fetchConversations();
-    }, [filter]);
+    }, []);
 
-    // WebSocket Connection for Active Chat
+    // Fetch messages when active chat changes
     useEffect(() => {
         if (activeChat) {
-            // Disconnect previous
+            fetchMessages(activeChat.id);
+
+            // WebSocket connection (optional - for real-time)
             if (ws.current) ws.current.close();
+            ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${activeChat.id}/`);
 
-            // Connect to specific customer chat channel
-            // Note: In real app, might need a distinct auth token or room ID in URL
-            // ws://127.0.0.1:8000/ws/support/chat/<room_name>/
-            ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/support/chat/${activeChat.room_name}/`);
-
-            ws.current.onopen = () => console.log('Support Agent Connected');
-
+            ws.current.onopen = () => console.log('WebSocket Connected');
             ws.current.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 setMessages((prev) => [...prev, data]);
             };
-
-            ws.current.onclose = () => console.log('Support Agent Disconnected');
-
-            // Fetch previous messages (if API exists) or rely on WS history
-            // For now, assume empty or WS sends history on connect
+            ws.current.onclose = () => console.log('WebSocket Disconnected');
         }
-
         return () => {
             if (ws.current) ws.current.close();
         };
@@ -48,8 +40,8 @@ const SupportAgentDashboard = () => {
 
     // Fetch Customer Details when active chat changes
     useEffect(() => {
-        if (activeChat && activeChat.user_id) {
-            fetchCustomerInfo(activeChat.user_id);
+        if (activeChat && activeChat.customer?.id) {
+            fetchCustomerInfo(activeChat.customer.id);
         } else {
             setCustomerInfo(null);
         }
@@ -61,66 +53,98 @@ const SupportAgentDashboard = () => {
     }, [messages]);
 
     const fetchConversations = async () => {
+        setLoading(true);
         try {
-            // Mock data if backend not ready, or use API
-            // const data = await apiService.getSupportConversations(filter);
-            // setConversations(data);
-
-            // MOCK DATA FOR DEMO
-            const mockData = [
-                { id: 1, user_id: 101, customer_name: 'John Doe', last_message: 'Where is my order?', time: '10:30 AM', room_name: 'room_101', status: 'active' },
-                { id: 2, user_id: 102, customer_name: 'Jane Smith', last_message: 'Refund request please', time: '09:15 AM', room_name: 'room_102', status: 'active' },
-                { id: 3, user_id: 103, customer_name: 'Ali Veli', last_message: 'Thank you!', time: 'Yesterday', room_name: 'room_103', status: 'closed' },
-            ];
-            setConversations(mockData.filter(c => c.status === filter));
-
+            const data = await apiService.getChatConversations();
+            if (data) {
+                setConversations(data);
+            }
         } catch (error) {
             console.error('Failed to fetch conversations', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchMessages = async (conversationId) => {
+        try {
+            const data = await apiService.getChatMessages(conversationId);
+            if (data) {
+                setMessages(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch messages', error);
         }
     };
 
     const fetchCustomerInfo = async (userId) => {
         try {
-            // const data = await apiService.getCustomerDetails(userId);
-            // setCustomerInfo(data);
-
-            // MOCK DATA
-            setCustomerInfo({
-                name: activeChat.customer_name,
-                email: 'customer@example.com',
-                orders: [
-                    { id: 5501, date: '2024-01-01', total: '150.00 TL', status: 'processing' },
-                    { id: 5400, date: '2023-12-25', total: '1200.00 TL', status: 'delivered' },
-                ],
-                cart_count: 2,
-                wishlist_count: 5
-            });
+            const data = await apiService.getCustomerInfo(userId);
+            if (data) {
+                setCustomerInfo(data);
+            }
         } catch (error) {
             console.error('Failed to fetch customer info', error);
         }
     };
 
-    const handleSendMessage = () => {
-        if (!inputText.trim() || !ws.current) return;
-
-        const msgData = {
-            message: inputText,
-            sender: 'agent', // or user ID
-            timestamp: new Date().toISOString() // mostly for local optimistic UI if needed
-        };
-
-        ws.current.send(JSON.stringify(msgData));
-
-        // Optimistic update
-        setMessages(prev => [...prev, { ...msgData, type: 'sent' }]);
-        setInputText('');
+    const handleClaimChat = async () => {
+        if (!activeChat) return;
+        try {
+            await apiService.claimConversation(activeChat.id);
+            alert('✅ Sohbet başarıyla alındı!');
+            fetchConversations();
+        } catch (error) {
+            console.error('Failed to claim chat', error);
+            alert('❌ Sohbet alınamadı');
+        }
     };
 
-    const handleResolveChat = () => {
-        alert('Chat resolved!');
-        // API call to update status to 'closed'
-        setConversations(prev => prev.filter(c => c.id !== activeChat.id));
-        setActiveChat(null);
+    const handleSendMessage = async () => {
+        if (!inputText.trim() || !activeChat) return;
+
+        try {
+            const newMessage = await apiService.sendChatMessage(activeChat.id, inputText);
+            if (newMessage) {
+                setMessages(prev => [...prev, newMessage]);
+            }
+            setInputText('');
+        } catch (error) {
+            console.error('Failed to send message', error);
+        }
+    };
+
+    const handleResolveChat = async () => {
+        if (!activeChat) return;
+
+        if (!window.confirm('Bu sohbeti çözümlenmiş olarak işaretlemek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        try {
+            await apiService.resolveConversation(activeChat.id);
+            alert('✅ Sohbet çözüldü ve kapatıldı!');
+            setConversations(prev => prev.filter(c => c.id !== activeChat.id));
+            setActiveChat(null);
+            setMessages([]);
+        } catch (error) {
+            console.error('Failed to resolve chat', error);
+            alert('❌ Sohbet kapatılamadı');
+        }
+    };
+
+    const getCustomerName = (conv) => {
+        if (conv.customer) {
+            const name = `${conv.customer.first_name || ''} ${conv.customer.last_name || ''}`.trim();
+            return name || conv.customer.username || `User #${conv.customer.id}`;
+        }
+        return `Guest (${conv.session_key || 'Unknown'})`;
+    };
+
+    const formatTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -128,33 +152,34 @@ const SupportAgentDashboard = () => {
             {/* 1. Sidebar */}
             <div className="sa-sidebar">
                 <div className="sa-sidebar-header">
-                    <h2>Conversations</h2>
-                    <div className="sa-filter-buttons">
-                        {['active', 'pending', 'closed'].map(f => (
-                            <button
-                                key={f}
-                                className={`filter-btn ${filter === f ? 'active' : ''}`}
-                                onClick={() => setFilter(f)}
-                            >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                            </button>
-                        ))}
-                    </div>
+                    <h2>💬 Sohbetler</h2>
+                    <button className="refresh-btn" onClick={fetchConversations}>🔄</button>
                 </div>
                 <div className="sa-conversation-list">
-                    {conversations.map(conv => (
-                        <div
-                            key={conv.id}
-                            className={`conversation-item ${activeChat?.id === conv.id ? 'active' : ''}`}
-                            onClick={() => setActiveChat(conv)}
-                        >
-                            <div className="conversation-header">
-                                <span className="customer-name">{conv.customer_name}</span>
-                                <span className="time">{conv.time}</span>
+                    {loading ? (
+                        <div className="loading-state">Yükleniyor...</div>
+                    ) : conversations.length === 0 ? (
+                        <div className="empty-state">Aktif sohbet bulunmuyor</div>
+                    ) : (
+                        conversations.map(conv => (
+                            <div
+                                key={conv.id}
+                                className={`conversation-item ${activeChat?.id === conv.id ? 'active' : ''} ${!conv.is_claimed ? 'unclaimed' : ''}`}
+                                onClick={() => setActiveChat(conv)}
+                            >
+                                <div className="conversation-header">
+                                    <span className="customer-name">{getCustomerName(conv)}</span>
+                                    <span className="time">{formatTime(conv.updated_at)}</span>
+                                </div>
+                                <div className="last-msg">
+                                    {conv.last_message?.message || 'Henüz mesaj yok'}
+                                </div>
+                                {!conv.is_claimed && (
+                                    <span className="claim-badge">Sahipsiz</span>
+                                )}
                             </div>
-                            <div className="last-msg">{conv.last_message}</div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -163,22 +188,38 @@ const SupportAgentDashboard = () => {
                 {activeChat ? (
                     <>
                         <div className="active-chat-header">
-                            <h3>{activeChat.customer_name}</h3>
-                            <button className="resolve-btn" onClick={handleResolveChat}>Resolve</button>
+                            <h3>{getCustomerName(activeChat)}</h3>
+                            <div className="header-actions">
+                                {!activeChat.is_claimed && (
+                                    <button className="claim-btn" onClick={handleClaimChat}>
+                                        🤚 Sahiplen
+                                    </button>
+                                )}
+                                <button className="resolve-btn" onClick={handleResolveChat}>
+                                    ✅ Çözüldü
+                                </button>
+                            </div>
                         </div>
                         <div className="sa-messages">
-                            {messages.map((msg, idx) => (
-                                <div key={idx} className={`sa-message ${msg.sender === 'agent' || msg.type === 'sent' ? 'sent' : 'received'}`}>
-                                    {msg.message}
-                                    <div className="msg-time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                </div>
-                            ))}
+                            {messages.length === 0 ? (
+                                <div className="empty-messages">Henüz mesaj yok</div>
+                            ) : (
+                                messages.map((msg, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`sa-message ${msg.is_customer ? 'received' : 'sent'}`}
+                                    >
+                                        {msg.message}
+                                        <div className="msg-time">{formatTime(msg.created_at)}</div>
+                                    </div>
+                                ))
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
                         <div className="sa-input-area">
                             <input
                                 type="text"
-                                placeholder="Type your reply..."
+                                placeholder="Mesajınızı yazın..."
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -187,35 +228,69 @@ const SupportAgentDashboard = () => {
                         </div>
                     </>
                 ) : (
-                    <div className="chat-empty-state">Select a conversation to start chatting</div>
+                    <div className="chat-empty-state">
+                        <span style={{ fontSize: '48px' }}>💬</span>
+                        <p>Sohbet başlatmak için sol taraftan bir konuşma seçin</p>
+                    </div>
                 )}
             </div>
 
             {/* 3. Customer Info Panel */}
             <div className="sa-info-panel">
                 <div className="info-section">
-                    <h3>Customer Details</h3>
+                    <h3>👤 Müşteri Bilgileri</h3>
                     {customerInfo ? (
                         <>
-                            <div className="info-row"><span className="label">Name:</span> <span className="value">{customerInfo.name}</span></div>
-                            <div className="info-row"><span className="label">Email:</span> <span className="value">{customerInfo.email}</span></div>
-                            <div className="info-row" style={{ marginTop: '10px' }}><span className="label">In Cart:</span> <span className="value">{customerInfo.cart_count} items</span></div>
-                            <div className="info-row"><span className="label">Wishlist:</span> <span className="value">{customerInfo.wishlist_count} items</span></div>
+                            <div className="info-row">
+                                <span className="label">Ad:</span>
+                                <span className="value">{customerInfo.name}</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="label">E-posta:</span>
+                                <span className="value">{customerInfo.email}</span>
+                            </div>
+                            <div className="info-row" style={{ marginTop: '10px' }}>
+                                <span className="label">Sepet:</span>
+                                <span className="value">{customerInfo.cart_count} ürün</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="label">Favoriler:</span>
+                                <span className="value">{customerInfo.wishlist_count} ürün</span>
+                            </div>
                         </>
-                    ) : <div className="empty-info">Select a chat to view details</div>}
+                    ) : (
+                        <div className="empty-info">
+                            {activeChat ?
+                                (activeChat.customer ? 'Müşteri bilgisi yükleniyor...' : 'Misafir kullanıcı') :
+                                'Sohbet seçin'
+                            }
+                        </div>
+                    )}
                 </div>
 
                 <div className="info-section">
-                    <h3>Recent Orders</h3>
-                    {customerInfo?.orders ? (
+                    <h3>📦 Son Siparişler</h3>
+                    {customerInfo?.orders?.length > 0 ? (
                         customerInfo.orders.map(order => (
                             <div key={order.id} className="info-card">
-                                <div className="info-row"><span className="label">Order #{order.id}</span> <span className="value">{order.date}</span></div>
-                                <div className="info-row"><span className="label">Total:</span> <span className="value">{order.total}</span></div>
-                                <div className="info-row"><span className={`value status-badge ${order.status}`}>{order.status}</span></div>
+                                <div className="info-row">
+                                    <span className="label">Sipariş #{order.id}</span>
+                                    <span className="value">{order.date}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="label">Toplam:</span>
+                                    <span className="value">{order.total} TL</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className={`value status-badge ${order.status}`}>
+                                        {order.status}
+                                    </span>
+                                </div>
                             </div>
                         ))
-                    ) : <div className="empty-info">No orders found</div>}
+                    ) : (
+                        <div className="empty-info">Sipariş bulunamadı</div>
+                    )}
                 </div>
             </div>
         </div>
