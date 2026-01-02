@@ -134,4 +134,13 @@ export const apiService = {
   getWishlist: () => apiService.get("/users/wishlist/"),
   addToWishlist: (productId) => apiService.post("/users/wishlist/", { product_id: productId }),
   removeFromWishlist: (productId) => apiService.delete(`/users/wishlist/${productId}/`),
+
+  // -------------------------------
+  // Support Agent
+  // -------------------------------
+  // Fetch active conversations (mocking or real endpoint)
+  getSupportConversations: (status = 'active') => apiService.get(`/support/conversations/?status=${status}`),
+
+  // Fetch specific customer details for the side panel
+  getCustomerDetails: (userId) => apiService.get(`/users/${userId}/details/`),
 };
