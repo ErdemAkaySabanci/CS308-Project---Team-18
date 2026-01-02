@@ -39,12 +39,39 @@ class CheckoutView(APIView):
         if cart.items.count() == 0:
             return Response({"error": "Cart is empty."}, status=400)
 
+        # RACE CONDITION KORUMASINA ÖNCE STOK KONTROLÜ
+        # Cart item'ları select_related ile çek
+        cart_items = cart.items.select_related('product').all()
+
+        # Tüm ürünleri kilitle ve stok kontrolü yap
+        for item in cart_items:
+            # select_for_update ile ürünü kilitle (pessimistic locking)
+            try:
+                product = Product.objects.select_for_update().get(id=item.product.id)
+            except Product.DoesNotExist:
+                return Response(
+                    {"error": f"Ürün bulunamadı: {item.product.name}"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Stok kontrolü - race condition'dan koruma
+            if product.quantity_in_stock < item.quantity:
+                return Response(
+                    {
+                        "error": "Yetersiz stok",
+                        "product": product.name,
+                        "available": product.quantity_in_stock,
+                        "requested": item.quantity
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         # Extract payment data from request
         payment_data = request.data.get('payment', {})
         card_number = payment_data.get('card_number', '')
         card_last_4 = card_number[-4:] if len(card_number) >= 4 else ''
 
-        # Order oluştur
+        # Order oluştur (stok kontrolü başarılı olduktan sonra)
         order = Order.objects.create(
             user=user,
             status="processing",
@@ -56,29 +83,33 @@ class CheckoutView(APIView):
             card_last_4=card_last_4
         )
 
-        # OrderItem + stok düşme
-        for item in cart.items.all():
+        # OrderItem oluştur + stok düşme (select_for_update ile güvenli)
+        for item in cart_items:
+            # Ürünü tekrar kilitle (transaction içinde)
+            product = Product.objects.select_for_update().get(id=item.product.id)
+
+            # OrderItem oluştur
             OrderItem.objects.create(
                 order=order,
-                product=item.product,
+                product=product,
                 quantity=item.quantity,
-                price=item.product.discounted_price
+                price=product.discounted_price
             )
 
-        #Stok azaltma ve popularity artırma
-            item.product.quantity_in_stock -= item.quantity
-            item.product.popularity += item.quantity  # Satış sayısına göre popularity artır
-            # is_in_stock property olduğu için otomatik hesaplanır, set etmeye gerek yok
-            item.product.save()
+            # Stok azaltma ve popularity artırma
+            product.quantity_in_stock -= item.quantity
+            product.popularity += item.quantity
+            product.version += 1  # Optimistic locking için version artır
+            product.save()
 
         # Sepeti temizle
         cart.items.all().delete()
 
-        # Generate PDF invoice
-        from .invoice_generator import generate_invoice_pdf
-        from django.core.mail import EmailMessage
-        
+        # Generate PDF invoice (optional - skip if reportlab not installed)
         try:
+            from .invoice_generator import generate_invoice_pdf
+            from django.core.mail import EmailMessage
+
             pdf_path = generate_invoice_pdf(order)
             
             # Save relative path (from media root) to order
@@ -144,12 +175,38 @@ class OrderListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         user = request.user
         cart = Cart.objects.filter(user=user).first()
 
         if not cart or cart.items.count() == 0:
             return Response({"error": "Cart is empty"}, status=400)
+
+        # RACE CONDITION KORUMASINA ÖNCE STOK KONTROLÜ
+        cart_items = cart.items.select_related('product').all()
+
+        # Tüm ürünleri kilitle ve stok kontrolü yap
+        for item in cart_items:
+            try:
+                product = Product.objects.select_for_update().get(id=item.product.id)
+            except Product.DoesNotExist:
+                return Response(
+                    {"error": f"Ürün bulunamadı: {item.product.name}"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Stok kontrolü - race condition'dan koruma
+            if product.quantity_in_stock < item.quantity:
+                return Response(
+                    {
+                        "error": "Yetersiz stok",
+                        "product": product.name,
+                        "available": product.quantity_in_stock,
+                        "requested": item.quantity
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         delivery_address = request.data.get("delivery_address", "")
 
@@ -159,15 +216,19 @@ class OrderListCreateView(generics.ListCreateAPIView):
             delivery_address=delivery_address
         )
 
-        for item in cart.items.all():
+        # OrderItem oluştur + stok düşme (select_for_update ile güvenli)
+        for item in cart_items:
+            product = Product.objects.select_for_update().get(id=item.product.id)
+
             OrderItem.objects.create(
                 order=order,
-                product=item.product,
+                product=product,
                 quantity=item.quantity,
-                price=item.product.price
+                price=product.price
             )
-            item.product.quantity_in_stock -= item.quantity
-            item.product.save()
+            product.quantity_in_stock -= item.quantity
+            product.version += 1  # Optimistic locking için version artır
+            product.save()
 
         cart.items.all().delete()
         return Response(OrderSerializer(order).data, status=201)

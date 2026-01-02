@@ -32,6 +32,7 @@ class Product(models.Model):
     discount_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     popularity = models.PositiveIntegerField(default=0, help_text="Total units sold")
     is_active = models.BooleanField(default=True)
+    version = models.PositiveIntegerField(default=0, help_text="Version for optimistic locking")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
