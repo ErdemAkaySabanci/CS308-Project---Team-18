@@ -1,6 +1,9 @@
 from rest_framework import generics, filters, viewsets
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.conf import settings
 from .models import Product, Category
 from .serializers import (
     ProductListSerializer,
@@ -15,6 +18,7 @@ class ProductPagination(PageNumberPagination):
     max_page_size = 100
 
 
+@method_decorator(cache_page(60 * 5), name='dispatch')  # 5 dakika cache
 class ProductListView(generics.ListAPIView):
     """
     Ürün listesi API
@@ -63,6 +67,7 @@ class ProductListView(generics.ListAPIView):
         return queryset
 
 
+@method_decorator(cache_page(60 * 15), name='dispatch')  # 15 dakika cache
 class ProductDetailView(generics.RetrieveAPIView):
     """Tek bir ürünün detayı"""
     queryset = Product.objects.filter(is_active=True).select_related('category')
@@ -70,9 +75,10 @@ class ProductDetailView(generics.RetrieveAPIView):
     lookup_field = 'pk'
 
 
+@method_decorator(cache_page(60 * 30), name='dispatch')  # 30 dakika cache
 class CategoryListView(generics.ListAPIView):
     """Kategori listesi"""
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().prefetch_related('products')
     serializer_class = CategorySerializer
 
 
@@ -134,20 +140,22 @@ class ApplyDiscountView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        updated_count = 0
         # notified_users = set()  # Will be enabled when Wishlist is implemented
-        
-        for product in products:
-            # Discount uygula
+
+        # Bulk update kullanarak N+1 query problemini önle
+        products_list = list(products)
+        for product in products_list:
             product.discount_rate = discount_percentage
-            product.save()
-            updated_count += 1
-            
+
             # TODO: Wishlist notification - will be enabled when Wishlist model is added
             # from users.models import Wishlist
             # wishlists = Wishlist.objects.filter(product=product).select_related('user')
             # for wishlist in wishlists:
             #     notified_users.add(wishlist.user.id)
+
+        # Tek bir query ile tüm ürünleri güncelle
+        Product.objects.bulk_update(products_list, ['discount_rate'])
+        updated_count = len(products_list)
         
         return Response({
             "message": f"Discount applied successfully to {updated_count} product(s)",
