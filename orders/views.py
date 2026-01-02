@@ -7,10 +7,11 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils.crypto import get_random_string
+from django.utils import timezone
 from django.conf import settings
 
 from cart.models import Cart
-from .models import Order, OrderItem
+from .models import Order, OrderItem, RefundRequest
 from .serializers import OrderSerializer
 from products.models import Product
 
@@ -522,3 +523,158 @@ class InvoiceListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+# ---------------------------------------------------------
+# 9) CUSTOMER REFUND REQUEST
+# ---------------------------------------------------------
+class RequestRefundView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+
+        # Check if already refunded or requested
+        if order.status in ['refund_requested', 'refunded']:
+            return Response(
+                {"error": "Refund already requested or processed for this order."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if eligible for refund (must be delivered)
+        if order.status != 'delivered':
+             return Response(
+                {"error": "Only delivered orders can be refunded."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get('reason', '')
+        if not reason:
+             return Response(
+                {"error": "Refund reason is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create Refund Request
+        RefundRequest.objects.create(
+            order=order,
+            reason=reason,
+            refund_amount=order.total_price, # Default to full refund for now
+            status='pending'
+        )
+
+        # Update Order Status
+        old_status = order.status
+        order.status = 'refund_requested'
+        order.add_status_log('refund_requested', updated_by=request.user)
+        order.save()
+
+        # Send Email (Optional - reusing status update email or custom)
+        # send_status_update_email(order, 'refund_requested') # We can implement this if needed
+
+        return Response({
+            "message": "Refund requested successfully. It is now pending approval.",
+            "order_id": order.id
+        }, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------
+# 10) APPROVE/REJECT REFUND (SALES MANAGER)
+# ---------------------------------------------------------
+class ApproveRefundView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, refund_id):
+        # Role check
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can approve refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        refund_req = get_object_or_404(RefundRequest, id=refund_id)
+        action = request.data.get('action') # 'approve' or 'reject'
+
+        if action not in ['approve', 'reject']:
+             return Response(
+                {"error": "Invalid action. Must be 'approve' or 'reject'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if refund_req.status != 'pending':
+            return Response(
+                {"error": "This refund request has already been processed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if action == 'approve':
+            # Approve Refund
+            refund_req.status = 'approved'
+            refund_req.processed_at = timezone.now()
+            refund_req.processed_by = request.user
+            refund_req.save()
+
+            # Update Order Status
+            order = refund_req.order
+            order.status = 'refunded'
+            order.add_status_log('refunded', updated_by=request.user)
+            order.save()
+
+            # Restore Stock
+            for item in order.items.all():
+                item.product.quantity_in_stock += item.quantity
+                item.product.save()
+
+            return Response({"message": "Refund approved and stock restored."}, status=200)
+
+        elif action == 'reject':
+            # Reject Refund
+            refund_req.status = 'rejected'
+            refund_req.processed_at = timezone.now()
+            refund_req.processed_by = request.user
+            refund_req.save()
+
+            # Revert Order Status to Delivered (or keep as is, but logic suggests we revert if rejected)
+            # Or we can introduce a 'refund_rejected' status if we want to be explicit.
+            # For now, let's set it back to 'delivered' so they can maybe try again or just see it valid.
+            order = refund_req.order
+            order.status = 'delivered'
+            order.add_status_log('delivered', updated_by=request.user)
+            order.save()
+
+            return Response({"message": "Refund rejected."}, status=200)
+
+# ---------------------------------------------------------
+# 11) LIST REFUND REQUESTS (SALES MANAGER)
+# ---------------------------------------------------------
+class RefundRequestListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Role check
+        if not hasattr(request.user, 'role') or request.user.role != 'sales_manager':
+            return Response(
+                {"error": "Permission denied. Only Sales Managers can view refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        status_filter = request.query_params.get('status')
+        refunds = RefundRequest.objects.all().order_by('-created_at')
+
+        if status_filter:
+            refunds = refunds.filter(status=status_filter)
+
+        data = []
+        for r in refunds:
+            data.append({
+                "id": r.id,
+                "order_id": r.order.id,
+                "customer": r.order.user.get_full_name() or r.order.user.username,
+                "reason": r.reason,
+                "status": r.status,
+                "amount": r.refund_amount if r.refund_amount else r.order.total_price,
+                "created_at": r.created_at,
+                "processed_at": r.processed_at,
+                "processed_by": r.processed_by.username if r.processed_by else None
+            })
+
+        return Response(data, status=200)

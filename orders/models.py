@@ -85,21 +85,20 @@ class OrderItem(models.Model):
         return self.quantity * self.price
 
 
-class Refund(models.Model):
+class RefundRequest(models.Model):
     REFUND_STATUS = (
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     )
 
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refunds')
-    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refund_requests')
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=REFUND_STATUS, default='pending')
-    refund_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     processed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='processed_refunds')
 
     def __str__(self):
-        return f"Refund for Order #{self.order.id}"
+        return f"Refund Request for Order #{self.order.id}"
