@@ -11,6 +11,7 @@ const Navbar = () => {
     const user = isAuthenticated ? JSON.parse(localStorage.getItem('user') || '{}') : null;
     const isSalesManager = user?.role === 'sales_manager';
     const isProductManager = user?.role === 'product_manager';
+    const isSupportAgent = user?.role === 'support_agent';
 
     const handleLogout = () => {
         authService.logout();
@@ -112,6 +113,18 @@ const Navbar = () => {
                         </NavLink>
                     )}
 
+                    {isSupportAgent && (
+                        <NavLink
+                            to="/support-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.navLink,
+                                ...(isActive ? styles.navLinkActive : {})
+                            })}
+                        >
+                            💬 Support
+                        </NavLink>
+                    )}
+
                     <div style={styles.divider}></div>
 
                     {isAuthenticated ? (
@@ -209,6 +222,32 @@ const Navbar = () => {
                             onClick={closeMobileMenu}
                         >
                             📊 Sales Dashboard
+                        </NavLink>
+                    )}
+
+                    {isProductManager && (
+                        <NavLink
+                            to="/product-manager-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.mobileNavLink,
+                                ...(isActive ? styles.mobileNavLinkActive : {})
+                            })}
+                            onClick={closeMobileMenu}
+                        >
+                            📦 PM Dashboard
+                        </NavLink>
+                    )}
+
+                    {isSupportAgent && (
+                        <NavLink
+                            to="/support-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.mobileNavLink,
+                                ...(isActive ? styles.mobileNavLinkActive : {})
+                            })}
+                            onClick={closeMobileMenu}
+                        >
+                            💬 Support
                         </NavLink>
                     )}
 

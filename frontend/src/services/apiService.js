@@ -136,11 +136,14 @@ export const apiService = {
   removeFromWishlist: (productId) => apiService.delete(`/users/wishlist/${productId}/`),
 
   // -------------------------------
-  // Support Agent
+  // Chat / Support Agent
   // -------------------------------
-  // Fetch active conversations (mocking or real endpoint)
-  getSupportConversations: (status = 'active') => apiService.get(`/support/conversations/?status=${status}`),
-
-  // Fetch specific customer details for the side panel
-  getCustomerDetails: (userId) => apiService.get(`/users/${userId}/details/`),
+  getChatConversations: () => apiService.get('/chat/conversations/'),
+  createConversation: (sessionKey) => apiService.post('/chat/conversations/create/', { session_key: sessionKey }),
+  getConversation: (id) => apiService.get(`/chat/conversations/${id}/`),
+  claimConversation: (id) => apiService.post(`/chat/conversations/${id}/claim/`),
+  resolveConversation: (id) => apiService.post(`/chat/conversations/${id}/resolve/`),
+  getChatMessages: (conversationId) => apiService.get(`/chat/conversations/${conversationId}/messages/`),
+  sendChatMessage: (conversationId, message) => apiService.post(`/chat/conversations/${conversationId}/messages/send/`, { message }),
+  getCustomerInfo: (userId) => apiService.get(`/chat/customer/${userId}/`),
 };

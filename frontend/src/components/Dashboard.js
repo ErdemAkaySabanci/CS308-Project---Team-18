@@ -1,12 +1,26 @@
 // frontend/src/components/Dashboard.js
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { authService } from '../services/authService';
 import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
+
+  // Auto-redirect based on role
+  useEffect(() => {
+    if (user?.role === 'support_agent') {
+      navigate('/support-dashboard');
+    } else if (user?.role === 'product_manager') {
+      navigate('/product-manager-dashboard');
+    } else if (user?.role === 'sales_manager') {
+      navigate('/sales-dashboard');
+    } else {
+      // Regular customer stays on dashboard or redirect to home
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleLogout = () => {
     authService.logout();
