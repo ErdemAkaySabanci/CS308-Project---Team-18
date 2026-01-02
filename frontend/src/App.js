@@ -8,6 +8,7 @@ import Register from "./pages/RegisterPage";
 import Dashboard from "./components/Dashboard";
 import AccountPage from "./pages/AccountPage";
 import SupportAgentDashboard from "./pages/SupportAgentDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import { authService } from "./services/authService";
 
 // Pages
@@ -81,6 +82,9 @@ function App() {
 
         {/* SUPPORT AGENT */}
         <Route path="/support-dashboard" element={<ProtectedRoute><SupportAgentDashboard /></ProtectedRoute>} />
+
+        {/* ADMIN */}
+        <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />

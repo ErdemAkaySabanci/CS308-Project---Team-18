@@ -49,7 +49,8 @@ const Login = () => {
           localStorage.removeItem('guestCart');
         }
 
-        navigate('/');
+        // Force reload and redirect to dashboard to ensure role check runs
+        window.location.href = '/dashboard';
       } else {
         setError(data.error || 'Invalid email or password');
       }

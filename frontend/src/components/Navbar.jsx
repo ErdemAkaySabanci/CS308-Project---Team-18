@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 
 const Navbar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const isAuthenticated = authService.isAuthenticated();
+
+    // Hide navbar on admin dashboard
+    if (location.pathname.startsWith('/admin-dashboard')) return null;
 
     // Get user role
     const user = isAuthenticated ? JSON.parse(localStorage.getItem('user') || '{}') : null;
     const isSalesManager = user?.role === 'sales_manager';
     const isProductManager = user?.role === 'product_manager';
     const isSupportAgent = user?.role === 'support_agent';
+    const isAdmin = user?.is_superuser;
 
     const handleLogout = () => {
         authService.logout();
@@ -122,6 +127,18 @@ const Navbar = () => {
                             })}
                         >
                             💬 Support
+                        </NavLink>
+                    )}
+
+                    {isAdmin && (
+                        <NavLink
+                            to="/admin-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.navLink,
+                                ...(isActive ? styles.navLinkActive : {})
+                            })}
+                        >
+                            ⚙️ Admin
                         </NavLink>
                     )}
 
@@ -248,6 +265,19 @@ const Navbar = () => {
                             onClick={closeMobileMenu}
                         >
                             💬 Support
+                        </NavLink>
+                    )}
+
+                    {isAdmin && (
+                        <NavLink
+                            to="/admin-dashboard"
+                            style={({ isActive }) => ({
+                                ...styles.mobileNavLink,
+                                ...(isActive ? styles.mobileNavLinkActive : {})
+                            })}
+                            onClick={closeMobileMenu}
+                        >
+                            ⚙️ Admin
                         </NavLink>
                     )}
 

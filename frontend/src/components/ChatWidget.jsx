@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import './ChatWidget.css';
 import { apiService } from '../services/apiService';
 import { authService } from '../services/authService';
 
 const ChatWidget = () => {
+    const location = useLocation();
+
+    // Hide chat on admin dashboard
+    // We check isOpen inside return, but better to return null early
+    const shouldHide = location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
@@ -118,6 +125,8 @@ const ChatWidget = () => {
         const date = new Date(dateString);
         return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     };
+
+    if (shouldHide) return null;
 
     return (
         <>
