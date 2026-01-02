@@ -7,6 +7,8 @@ function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openOrderId, setOpenOrderId] = useState(null);
+  const [refundOrderId, setRefundOrderId] = useState(null);
+  const [refundReason, setRefundReason] = useState("");
 
   // Track which products have been reviewed
   const [reviewedProducts, setReviewedProducts] = useState(new Set());
@@ -52,6 +54,24 @@ function OrderHistoryPage() {
     } catch (err) {
       console.error('Cancel error:', err);
       alert('❌ Failed to cancel order: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleRefundRequest = async () => {
+    if (!refundReason.trim()) {
+      alert("Please provide a reason for the refund.");
+      return;
+    }
+
+    try {
+      await apiService.requestRefund(refundOrderId, refundReason);
+      alert('✅ Refund requested successfully!');
+      setRefundOrderId(null);
+      setRefundReason("");
+      loadOrders(); // Refresh orders to show updated status
+    } catch (err) {
+      console.error('Refund error:', err);
+      alert('❌ Failed to request refund: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -147,12 +167,12 @@ function OrderHistoryPage() {
 
                     {/* Request Refund Button - only for delivered orders */}
                     {order.status === 'delivered' && (
-                      <Link
-                        to={`/orders/${order.id}/refund`}
+                      <button
+                        onClick={() => setRefundOrderId(order.id)}
                         style={styles.refundButton}
                       >
                         🔄 Request Refund
-                      </Link>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -205,6 +225,42 @@ function OrderHistoryPage() {
           );
         })}
       </div>
+
+      {/* Refund Modal */}
+      {refundOrderId && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <h3 style={styles.modalTitle}>Request Refund</h3>
+            <p style={styles.modalSubtitle}>Order #{refundOrderId}</p>
+
+            <textarea
+              style={styles.textarea}
+              placeholder="Please describe why you are requesting a refund..."
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              rows={4}
+            />
+
+            <div style={styles.modalActions}>
+              <button
+                onClick={() => {
+                  setRefundOrderId(null);
+                  setRefundReason("");
+                }}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRefundRequest}
+                style={styles.submitButton}
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -490,6 +546,65 @@ const styles = {
     borderTop: '1px solid #F1F5F9',
     color: '#64748B',
     fontSize: '14px',
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    padding: '32px',
+    borderRadius: '16px',
+    width: '90%',
+    maxWidth: '500px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  },
+  modalTitle: {
+    fontSize: '20px',
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: '8px',
+  },
+  modalSubtitle: {
+    color: '#64748B',
+    marginBottom: '24px',
+  },
+  textarea: {
+    width: '100%',
+    padding: '12px',
+    border: '1px solid #E2E8F0',
+    borderRadius: '8px',
+    marginBottom: '24px',
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    resize: 'vertical',
+    outline: 'none',
+  },
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+  },
+  submitButton: {
+    padding: '10px 20px',
+    backgroundColor: '#F59E0B', // Matching refund button color
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px',
+    transition: 'background-color 0.2s ease',
   },
 };
 
