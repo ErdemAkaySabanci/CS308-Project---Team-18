@@ -157,21 +157,19 @@ class ApplyDiscountView(APIView):
             for product in products_list:
                 product.discount_rate = discount_percentage
                 
-                # Update product price logic (handled by property but good to trigger signals if any)
-                # Note: discounted_price is calculated on the fly
-                
-                # Find users who have this product in their wishlist
-                # WishList model has 'user' and 'products' (M2M) fields based on previous context
-                wishlists = WishList.objects.filter(products=product).select_related('user')
-                
-                for wishlist in wishlists:
-                    user = wishlist.user
-                    if user.email and user.email not in notified_users_emails:
-                        notified_users_emails.add(user.email)
-                        
-                        subject = f"Price Drop Alert! {product.name} is on Sale!"
-                        message = f"Hi {user.first_name},\n\nGood news! An item in your wishlist, '{product.name}', is now on sale with a {discount_percentage}% discount.\n\nDon't miss out!\n\nBest,\nSport Store Team"
-                        messages.append((subject, message, settings.DEFAULT_FROM_EMAIL, [user.email]))
+                # Only check wishlist and send emails if a REAL discount is applied (> 0)
+                if discount_percentage > 0:
+                    # WishList model has 'user' and 'product' (ForeignKey) fields
+                    wishlists = WishList.objects.filter(product=product).select_related('user')
+                    
+                    for wishlist in wishlists:
+                        user = wishlist.user
+                        if user.email and user.email not in notified_users_emails:
+                            notified_users_emails.add(user.email)
+                            
+                            subject = f"Price Drop Alert! {product.name} is on Sale!"
+                            message = f"Hi {user.first_name},\n\nGood news! An item in your wishlist, '{product.name}', is now on sale with a {discount_percentage}% discount.\n\nDon't miss out!\n\nBest,\nSport Store Team"
+                            messages.append((subject, message, settings.DEFAULT_FROM_EMAIL, [user.email]))
             
             # Send all emails efficiently
             if messages:
