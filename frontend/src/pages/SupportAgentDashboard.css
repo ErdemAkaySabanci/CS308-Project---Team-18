@@ -2,7 +2,7 @@
 
 .sa-dashboard-container {
     display: grid;
-    grid-template-columns: 320px 1fr 340px;
+    grid-template-columns: 320px 1fr 450px;
     height: calc(100vh - 70px);
     background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
     overflow: hidden;
@@ -269,6 +269,36 @@
     opacity: 0.7;
 }
 
+.msg-content {
+    word-wrap: break-word;
+}
+
+.msg-attachment {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.sa-message.received .msg-attachment {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px dashed rgba(102, 126, 234, 0.3);
+}
+
+.msg-attachment a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.msg-attachment a:hover {
+    text-decoration: underline;
+}
+
 .sa-input-area {
     padding: 20px 24px;
     border-top: 1px solid #e9ecef;
@@ -471,4 +501,46 @@
     .sa-sidebar {
         display: none;
     }
+}
+
+/* Wishlist Styles */
+.wishlist-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wishlist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+}
+
+.item-img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.item-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #343a40;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-price {
+    font-size: 12px;
+    color: #667eea;
+    font-weight: 600;
 }

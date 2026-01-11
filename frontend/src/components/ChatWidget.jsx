@@ -194,10 +194,10 @@ const ChatWidget = () => {
                                     className={`chat-message ${msg.is_customer ? 'customer' : 'agent'}`}
                                 >
                                     <div className="message-bubble">
-                                        {msg.attachment && (
+                                        {(msg.attachment_url || msg.attachment) && (
                                             <div className="message-attachment">
-                                                <a href={msg.attachment} target="_blank" rel="noopener noreferrer">
-                                                    📎 {msg.attachment.split('/').pop().substring(0, 20)}...
+                                                <a href={msg.attachment_url || msg.attachment} target="_blank" rel="noopener noreferrer">
+                                                    📎 {(msg.attachment_url || msg.attachment).split('/').pop().substring(0, 20)}...
                                                 </a>
                                             </div>
                                         )}

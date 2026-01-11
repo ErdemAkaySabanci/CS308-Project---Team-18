@@ -12,6 +12,7 @@ urlpatterns = [
     # NEW
     path('me/', views.CurrentUserView.as_view(), name='current-user'),
     path('address/', views.UpdateAddressView.as_view(), name='update-address'),
+    path('customer/<int:pk>/', views.CustomerDetailView.as_view(), name='customer-detail'),
 
     # Wishlist
     path('wishlist/', views.WishListView.as_view(), name='wishlist'),

@@ -144,7 +144,7 @@ const SupportAgentDashboard = () => {
     const formatTime = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
-        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -152,14 +152,14 @@ const SupportAgentDashboard = () => {
             {/* 1. Sidebar */}
             <div className="sa-sidebar">
                 <div className="sa-sidebar-header">
-                    <h2>💬 Sohbetler</h2>
+                    <h2>💬 Chats</h2>
                     <button className="refresh-btn" onClick={fetchConversations}>🔄</button>
                 </div>
                 <div className="sa-conversation-list">
                     {loading ? (
-                        <div className="loading-state">Yükleniyor...</div>
+                        <div className="loading-state">Loading...</div>
                     ) : conversations.length === 0 ? (
-                        <div className="empty-state">Aktif sohbet bulunmuyor</div>
+                        <div className="empty-state">No active chats</div>
                     ) : (
                         conversations.map(conv => (
                             <div
@@ -172,10 +172,10 @@ const SupportAgentDashboard = () => {
                                     <span className="time">{formatTime(conv.updated_at)}</span>
                                 </div>
                                 <div className="last-msg">
-                                    {conv.last_message?.message || 'Henüz mesaj yok'}
+                                    {conv.last_message?.message || 'No messages yet'}
                                 </div>
                                 {!conv.is_claimed && (
-                                    <span className="claim-badge">Sahipsiz</span>
+                                    <span className="claim-badge">Unclaimed</span>
                                 )}
                             </div>
                         ))
@@ -192,24 +192,59 @@ const SupportAgentDashboard = () => {
                             <div className="header-actions">
                                 {!activeChat.is_claimed && (
                                     <button className="claim-btn" onClick={handleClaimChat}>
-                                        🤚 Sahiplen
+                                        🤚 Claim
                                     </button>
                                 )}
                                 <button className="resolve-btn" onClick={handleResolveChat}>
-                                    ✅ Çözüldü
+                                    ✅ Resolved
                                 </button>
                             </div>
                         </div>
                         <div className="sa-messages">
                             {messages.length === 0 ? (
-                                <div className="empty-messages">Henüz mesaj yok</div>
+                                <div className="empty-messages">No messages yet</div>
                             ) : (
                                 messages.map((msg, idx) => (
                                     <div
                                         key={idx}
                                         className={`sa-message ${msg.is_customer ? 'received' : 'sent'}`}
                                     >
-                                        {msg.message}
+                                        <div className="msg-content">
+                                            {msg.attachment_url && (
+                                                <div className="msg-attachment">
+                                                    <a
+                                                        href={msg.attachment_url}
+                                                        download={msg.attachment_url.split('/').pop()}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            const token = localStorage.getItem('access_token');
+                                                            // Force download with auth
+                                                            fetch(msg.attachment_url, {
+                                                                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                                                            })
+                                                                .then(res => res.blob())
+                                                                .then(blob => {
+                                                                    const url = window.URL.createObjectURL(blob);
+                                                                    const link = document.createElement('a');
+                                                                    link.href = url;
+                                                                    link.download = msg.attachment_url.split('/').pop();
+                                                                    document.body.appendChild(link);
+                                                                    link.click();
+                                                                    link.remove();
+                                                                    window.URL.revokeObjectURL(url);
+                                                                })
+                                                                .catch((err) => {
+                                                                    console.error('Download failed:', err);
+                                                                    window.open(msg.attachment_url, '_blank');
+                                                                });
+                                                        }}
+                                                    >
+                                                        📥 {msg.attachment_url.split('/').pop()}
+                                                    </a>
+                                                </div>
+                                            )}
+                                            {msg.message}
+                                        </div>
                                         <div className="msg-time">{formatTime(msg.created_at)}</div>
                                     </div>
                                 ))
@@ -219,7 +254,7 @@ const SupportAgentDashboard = () => {
                         <div className="sa-input-area">
                             <input
                                 type="text"
-                                placeholder="Mesajınızı yazın..."
+                                placeholder="Type your message..."
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -230,7 +265,7 @@ const SupportAgentDashboard = () => {
                 ) : (
                     <div className="chat-empty-state">
                         <span style={{ fontSize: '48px' }}>💬</span>
-                        <p>Sohbet başlatmak için sol taraftan bir konuşma seçin</p>
+                        <p>Select a conversation to start chatting</p>
                     </div>
                 )}
             </div>
@@ -238,62 +273,96 @@ const SupportAgentDashboard = () => {
             {/* 3. Customer Info Panel */}
             <div className="sa-info-panel">
                 <div className="info-section">
-                    <h3>👤 Müşteri Bilgileri</h3>
+                    <h3>👤 Customer Info</h3>
                     {customerInfo ? (
                         <>
                             <div className="info-row">
-                                <span className="label">Ad:</span>
+                                <span className="label">Name:</span>
                                 <span className="value">{customerInfo.name}</span>
                             </div>
                             <div className="info-row">
-                                <span className="label">E-posta:</span>
+                                <span className="label">Email:</span>
                                 <span className="value">{customerInfo.email}</span>
                             </div>
-                            <div className="info-row" style={{ marginTop: '10px' }}>
-                                <span className="label">Sepet:</span>
-                                <span className="value">{customerInfo.cart_count} ürün</span>
+
+                            {/* Cart Items */}
+                            <div className="info-section" style={{ marginTop: '24px' }}>
+                                <h3>🛒 Cart ({customerInfo.cart_count || 0})</h3>
+                                {customerInfo.cart_items && customerInfo.cart_items.length > 0 ? (
+                                    <div className="wishlist-grid">
+                                        {customerInfo.cart_items.map(item => (
+                                            <div key={item.id} className="info-card wishlist-item">
+                                                {item.image && <img src={item.image} alt={item.name} className="item-img" />}
+                                                <div className="item-info">
+                                                    <div className="item-name" title={item.name}>{item.name}</div>
+                                                    <div className="item-price">
+                                                        {item.price} TL
+                                                        {item.quantity > 1 && <span style={{ color: '#666', marginLeft: '4px' }}>x{item.quantity}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="empty-info">Cart is empty</div>
+                                )}
                             </div>
-                            <div className="info-row">
-                                <span className="label">Favoriler:</span>
-                                <span className="value">{customerInfo.wishlist_count} ürün</span>
+
+                            {/* Wishlist Items */}
+                            <div className="info-section" style={{ marginTop: '24px' }}>
+                                <h3>❤️ Wishlist ({customerInfo.wishlist_count || 0})</h3>
+                                {customerInfo.wishlist_items && customerInfo.wishlist_items.length > 0 ? (
+                                    <div className="wishlist-grid">
+                                        {customerInfo.wishlist_items.map(item => (
+                                            <div key={item.id} className="info-card wishlist-item">
+                                                {item.image && <img src={item.image} alt={item.name} className="item-img" />}
+                                                <div className="item-info">
+                                                    <div className="item-name" title={item.name}>{item.name}</div>
+                                                    <div className="item-price">{item.price} TL</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="empty-info">No items in wishlist</div>
+                                )}
                             </div>
                         </>
                     ) : (
                         <div className="empty-info">
                             {activeChat ?
-                                (activeChat.customer ? 'Müşteri bilgisi yükleniyor...' : 'Misafir kullanıcı') :
-                                'Sohbet seçin'
+                                (activeChat.customer ? 'Loading info...' : 'Guest user') :
+                                'Select chat'
                             }
                         </div>
                     )}
                 </div>
 
-                <div className="info-section">
-                    <h3>📦 Son Siparişler</h3>
+                <div className="info-section" style={{ marginTop: '24px' }}>
+                    <h3>📦 Recent Orders</h3>
                     {customerInfo?.orders?.length > 0 ? (
                         customerInfo.orders.map(order => (
                             <div key={order.id} className="info-card">
                                 <div className="info-row">
-                                    <span className="label">Sipariş #{order.id}</span>
+                                    <span className="label">Order #{order.id}</span>
                                     <span className="value">{order.date}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="label">Toplam:</span>
+                                    <span className="label">Total:</span>
                                     <span className="value">{order.total} TL</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className={`value status-badge ${order.status}`}>
-                                        {order.status}
-                                    </span>
+                                    <span className="value status-badge">{order.status}</span>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="empty-info">Sipariş bulunamadı</div>
+                        <div className="empty-info">No orders found</div>
                     )}
                 </div>
             </div>
         </div>
+
     );
 };
 

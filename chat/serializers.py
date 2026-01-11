@@ -11,10 +11,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ChatMessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
+    attachment_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = ChatMessage
-        fields = ('id', 'conversation', 'sender', 'is_customer', 'message', 'attachment', 'created_at', 'is_read')
+        fields = ('id', 'conversation', 'sender', 'is_customer', 'message', 'attachment', 'attachment_url', 'created_at', 'is_read')
         read_only_fields = ('id', 'created_at', 'is_read')
+    
+    def get_attachment_url(self, obj):
+        if obj.attachment:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.attachment.url)
+            return obj.attachment.url
+        return None
 
 class ChatConversationSerializer(serializers.ModelSerializer):
     customer = UserSerializer(read_only=True)
