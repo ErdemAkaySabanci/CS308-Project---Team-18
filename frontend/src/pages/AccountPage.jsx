@@ -325,6 +325,17 @@ const AccountPage = () => {
                 </div>
 
                 <div style={styles.inputGroup}>
+                  <label style={styles.label}>Tax ID</label>
+                  <input
+                    type="text"
+                    value={formData.tax_id}
+                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                    style={styles.input}
+                    placeholder="Enter Tax ID"
+                  />
+                </div>
+
+                <div style={styles.inputGroup}>
                   <label style={styles.label}>Email Address</label>
                   <input
                     type="email"
@@ -371,6 +382,10 @@ const AccountPage = () => {
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Full Name</span>
                   <span style={styles.infoValue}>{user?.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Not set'}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Tax ID</span>
+                  <span style={styles.infoValue}>{user?.tax_id || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Email</span>

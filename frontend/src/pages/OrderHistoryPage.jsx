@@ -75,6 +75,31 @@ function OrderHistoryPage() {
     }
   };
 
+  const handleDownloadInvoice = async (orderId, invoiceNumber) => {
+    const token = localStorage.getItem('access_token');
+    try {
+      const response = await fetch(`http://localhost:8000/api/orders/${orderId}/invoice/download/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice_${invoiceNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert('📥 Invoice downloaded successfully!');
+    } catch (err) {
+      alert('❌ Failed to download invoice: ' + err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div style={styles.centerContainer}>
@@ -167,12 +192,21 @@ function OrderHistoryPage() {
 
                     {/* Request Refund Button - only for delivered orders */}
                     {order.status === 'delivered' && (
-                      <button
-                        onClick={() => setRefundOrderId(order.id)}
-                        style={styles.refundButton}
-                      >
-                        🔄 Request Refund
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setRefundOrderId(order.id)}
+                          style={styles.refundButton}
+                        >
+                          🔄 Request Refund
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadInvoice(order.id, order.invoice_number)}
+                          style={styles.downloadButton}
+                        >
+                          📥 Download Invoice
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -472,6 +506,19 @@ const styles = {
     color: '#FFFFFF',
     borderRadius: '10px',
     textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
+    textAlign: 'center',
+    transition: 'all 0.2s ease',
+  },
+  downloadButton: {
+    display: 'inline-block',
+    padding: '10px 20px',
+    backgroundColor: '#3B82F6',
+    color: '#FFFFFF',
+    borderRadius: '10px',
+    border: 'none',
+    cursor: 'pointer',
     fontWeight: '600',
     fontSize: '14px',
     textAlign: 'center',
