@@ -36,6 +36,7 @@ export const authService = {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     localStorage.removeItem('chat_session_key'); // Clear chat session
+    window.dispatchEvent(new Event('user-logout'));
   },
 
   // Get current user
