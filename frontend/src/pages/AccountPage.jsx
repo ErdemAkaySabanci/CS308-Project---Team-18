@@ -357,6 +357,17 @@ const AccountPage = () => {
                   />
                 </div>
 
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Tax ID</label>
+                  <input
+                    type="text"
+                    value={formData.tax_id}
+                    onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                    style={styles.input}
+                    placeholder="Enter Tax ID"
+                  />
+                </div>
+
                 <div style={styles.buttonGroup}>
                   <button type="button" style={styles.cancelButton} onClick={() => setEditing(false)}>Cancel</button>
                   <button type="submit" style={styles.saveButton}>Save Changes</button>
@@ -387,6 +398,10 @@ const AccountPage = () => {
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Phone</span>
                   <span style={styles.infoValue}>{user?.phone || 'Not set'}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Tax ID</span>
+                  <span style={styles.infoValue}>{user?.tax_id || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Member Since</span>
