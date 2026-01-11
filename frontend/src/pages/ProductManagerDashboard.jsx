@@ -57,7 +57,7 @@ const ProductManagerDashboard = () => {
     const fetchProducts = async () => {
         setProductsLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/products/');
+            const response = await fetch('http://localhost:8000/api/products-crud/');
             const data = await response.json();
             const productList = Array.isArray(data) ? data : (data.results || []);
             setProducts(productList);
@@ -195,7 +195,7 @@ const ProductManagerDashboard = () => {
     const fetchCategories = async () => {
         setCategoriesLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/categories/');
+            const response = await fetch('http://localhost:8000/api/categories-crud/');
             const data = await response.json();
             // Handle paginated response {count, results: [...]}
             const categoryList = Array.isArray(data) ? data : (data.results || []);

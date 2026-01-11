@@ -83,6 +83,19 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         }
     
     def create(self, validated_data):
+        import uuid
+        from django.utils.text import slugify
+        
+        # Generate product_id if not present
+        if 'product_id' not in validated_data or not validated_data.get('product_id'):
+            base_slug = slugify(validated_data.get('name', 'product'))
+            unique_suffix = str(uuid.uuid4())[:6]
+            validated_data['product_id'] = f"{base_slug}-{unique_suffix}"
+
+        # Generate serial_number if not present or empty (UNIQUE constraint)
+        if 'serial_number' not in validated_data or not validated_data.get('serial_number'):
+            validated_data['serial_number'] = f"SN-{uuid.uuid4().hex[:10].upper()}"
+
         # Eğer cost belirtilmezse, fiyatın %50'si olarak ayarla
         if 'cost' not in validated_data or validated_data.get('cost') is None:
             price = validated_data.get('price', 0)
