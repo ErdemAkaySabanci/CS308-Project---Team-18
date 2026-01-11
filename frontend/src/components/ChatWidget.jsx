@@ -53,6 +53,18 @@ const ChatWidget = () => {
     }, [conversationId]);
 
     // Auto scroll
+    // Listen for logout event - close chat when user logs out
+    useEffect(() => {
+        const handleLogout = () => {
+            setIsOpen(false);
+            setMessages([]);
+            setConversationId(null);
+            if (ws.current) ws.current.close();
+        };
+
+        window.addEventListener('user-logout', handleLogout);
+        return () => window.removeEventListener('user-logout', handleLogout);
+    }, []);
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
