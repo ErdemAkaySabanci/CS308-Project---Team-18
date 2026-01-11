@@ -5,7 +5,7 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'role', 'home_address']
+        fields = ['id', 'username', 'email', 'role', 'tax_id', 'home_address', 'phone', 'first_name', 'last_name', 'date_joined']
 
 
 class WishListSerializer(serializers.ModelSerializer):
