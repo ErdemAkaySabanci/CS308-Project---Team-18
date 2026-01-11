@@ -607,6 +607,14 @@ class RequestRefundView(APIView):
                 {"error": "Only delivered orders can be refunded."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        from datetime import timedelta
+        if order.created_at < timezone.now() - timedelta(days=30):
+            return Response(
+                {"error": "Refund period has expired. Orders can only be refunded within 30 days of purchase."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get('reason', '')
 
         reason = request.data.get('reason', '')
         if not reason:
