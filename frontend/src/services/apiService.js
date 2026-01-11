@@ -51,6 +51,19 @@ export const apiService = {
     return handleResponse(response, () => apiService.post(endpoint, data));
   },
 
+  postFormData: async (endpoint, formData) => {
+    const headers = getHeaders();
+    delete headers['Content-Type']; // Allow browser to set multipart/form-data boundary
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      credentials: 'include',
+      headers: headers,
+      body: formData,
+    });
+    return handleResponse(response, () => apiService.postFormData(endpoint, formData));
+  },
+
   // -------------------------------
   // Generic PUT
   // -------------------------------
@@ -144,7 +157,12 @@ export const apiService = {
   claimConversation: (id) => apiService.post(`/chat/conversations/${id}/claim/`),
   resolveConversation: (id) => apiService.post(`/chat/conversations/${id}/resolve/`),
   getChatMessages: (conversationId) => apiService.get(`/chat/conversations/${conversationId}/messages/`),
-  sendChatMessage: (conversationId, message) => apiService.post(`/chat/conversations/${conversationId}/messages/send/`, { message }),
+  sendChatMessage: (conversationId, message, attachment = null) => {
+    const formData = new FormData();
+    if (message) formData.append('message', message);
+    if (attachment) formData.append('attachment', attachment);
+    return apiService.postFormData(`/chat/conversations/${conversationId}/messages/send/`, formData);
+  },
   getCustomerInfo: (userId) => apiService.get(`/chat/customer/${userId}/`),
 
   // -------------------------------

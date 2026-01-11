@@ -14,10 +14,12 @@ const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
     const [conversationId, setConversationId] = useState(null);
     const [loading, setLoading] = useState(false);
     const ws = useRef(null);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     // Create or get existing conversation
     useEffect(() => {
@@ -98,24 +100,41 @@ const ChatWidget = () => {
         return sessionKey;
     };
 
+    const handleFileSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            if (e.target.files[0].size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+            setSelectedFile(e.target.files[0]);
+        }
+    };
+
     const handleSendMessage = async () => {
-        if (!inputText.trim() || !conversationId) return;
+        if ((!inputText.trim() && !selectedFile) || !conversationId) return;
 
         const messageText = inputText;
+        const fileToSend = selectedFile;
+
+        // Clear input immediately
         setInputText('');
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
 
         try {
-            const newMessage = await apiService.sendChatMessage(conversationId, messageText);
+            const newMessage = await apiService.sendChatMessage(conversationId, messageText, fileToSend);
             if (newMessage) {
                 setMessages(prev => [...prev, newMessage]);
             }
         } catch (error) {
             console.error('Failed to send message', error);
-            // Optimistic UI - add message anyway
+            // Optimistic UI - add message anyway (only text for now as file optimistic is hard)
             setMessages(prev => [...prev, {
                 message: messageText,
                 is_customer: true,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                // Mock attachment for optimistic UI if needed, but let's wait for server response for files
+                attachment: fileToSend ? URL.createObjectURL(fileToSend) : null
             }]);
         }
     };
@@ -175,6 +194,13 @@ const ChatWidget = () => {
                                     className={`chat-message ${msg.is_customer ? 'customer' : 'agent'}`}
                                 >
                                     <div className="message-bubble">
+                                        {msg.attachment && (
+                                            <div className="message-attachment">
+                                                <a href={msg.attachment} target="_blank" rel="noopener noreferrer">
+                                                    📎 {msg.attachment.split('/').pop().substring(0, 20)}...
+                                                </a>
+                                            </div>
+                                        )}
                                         {msg.message}
                                         <div className="message-time">{formatTime(msg.created_at)}</div>
                                     </div>
@@ -184,22 +210,47 @@ const ChatWidget = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="chat-widget-input">
-                        <input
-                            type="text"
-                            placeholder="Mesajınızı yazın..."
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            disabled={loading || !conversationId}
-                        />
-                        <button
-                            className="send-btn"
-                            onClick={handleSendMessage}
-                            disabled={!inputText.trim() || loading || !conversationId}
-                        >
-                            ➤
-                        </button>
+                    <div className="chat-widget-input-container">
+                        {selectedFile && (
+                            <div className="file-preview">
+                                <span>📎 {selectedFile.name}</span>
+                                <button onClick={() => {
+                                    setSelectedFile(null);
+                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                }}>✕</button>
+                            </div>
+                        )}
+                        <div className="chat-widget-input">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                style={{ display: 'none' }}
+                                onChange={handleFileSelect}
+                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                            />
+                            <button
+                                className="attach-btn"
+                                onClick={() => fileInputRef.current.click()}
+                                title="Attach File"
+                            >
+                                📎
+                            </button>
+                            <input
+                                type="text"
+                                placeholder="Mesajınızı yazın..."
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                disabled={loading || !conversationId}
+                            />
+                            <button
+                                className="send-btn"
+                                onClick={handleSendMessage}
+                                disabled={(!inputText.trim() && !selectedFile) || loading || !conversationId}
+                            >
+                                ➤
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -253,3 +253,72 @@
         right: 16px;
     }
 }
+
+/* Attachment Styles */
+.attach-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #666;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    min-width: 40px;
+}
+
+.attach-btn:hover {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.file-preview {
+    padding: 8px 12px;
+    background: #eef2ff;
+    border-top: 1px solid #e0e7ff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #4f46e5;
+}
+
+.file-preview button {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+}
+
+.message-attachment {
+    display: block;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chat-message.agent .message-attachment {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.message-attachment a {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.message-attachment a:hover {
+    text-decoration: underline;
+}
