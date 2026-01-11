@@ -71,7 +71,7 @@ const SalesDashboard = () => {
     const fetchProducts = async () => {
         setProductsLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/products/');
+            const response = await fetch('http://localhost:8000/api/products-crud/');
             const data = await response.json();
             // Handle both {results: [...]} and direct array formats
             const productList = Array.isArray(data) ? data : (data.results || []);
