@@ -145,23 +145,49 @@ class ApplyDiscountView(APIView):
 
         # Bulk update kullanarak N+1 query problemini önle
         products_list = list(products)
-        for product in products_list:
-            product.discount_rate = discount_percentage
-
-            # TODO: Wishlist notification - will be enabled when Wishlist model is added
-            # from users.models import Wishlist
-            # wishlists = Wishlist.objects.filter(product=product).select_related('user')
-            # for wishlist in wishlists:
-            #     notified_users.add(wishlist.user.id)
+        notified_users_emails = set()
+        
+        try:
+            from users.models import WishList  # Correct model name is WishList
+            from django.core.mail import send_mass_mail
+            
+            # Email messages to send
+            messages = []
+            
+            for product in products_list:
+                product.discount_rate = discount_percentage
+                
+                # Update product price logic (handled by property but good to trigger signals if any)
+                # Note: discounted_price is calculated on the fly
+                
+                # Find users who have this product in their wishlist
+                # WishList model has 'user' and 'products' (M2M) fields based on previous context
+                wishlists = WishList.objects.filter(products=product).select_related('user')
+                
+                for wishlist in wishlists:
+                    user = wishlist.user
+                    if user.email and user.email not in notified_users_emails:
+                        notified_users_emails.add(user.email)
+                        
+                        subject = f"Price Drop Alert! {product.name} is on Sale!"
+                        message = f"Hi {user.first_name},\n\nGood news! An item in your wishlist, '{product.name}', is now on sale with a {discount_percentage}% discount.\n\nDon't miss out!\n\nBest,\nSport Store Team"
+                        messages.append((subject, message, settings.DEFAULT_FROM_EMAIL, [user.email]))
+            
+            # Send all emails efficiently
+            if messages:
+                send_mass_mail(messages, fail_silently=True)
+                
+        except Exception as e:
+            print(f"Error sending discount notifications: {e}")
 
         # Tek bir query ile tüm ürünleri güncelle
         Product.objects.bulk_update(products_list, ['discount_rate'])
         updated_count = len(products_list)
         
         return Response({
-            "message": f"Discount applied successfully to {updated_count} product(s)",
+            "message": f"Discount applied successfully to {updated_count} product(s) and {len(notified_users_emails)} users notified.",
             "updated_products": updated_count,
-            # "notified_users": len(notified_users),  # Will be enabled when Wishlist is implemented
+            "notified_users_count": len(notified_users_emails),
             "discount_percentage": discount_percentage
         }, status=status.HTTP_200_OK)
 

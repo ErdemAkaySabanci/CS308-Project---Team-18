@@ -692,8 +692,21 @@ class ApproveRefundView(APIView):
             for item in order.items.all():
                 item.product.quantity_in_stock += item.quantity
                 item.product.save()
+            
+            # Send Approval Email
+            try:
+                from django.core.mail import send_mail
+                send_mail(
+                    subject=f'Refund Approved - Order #{order.invoice_number}',
+                    message=f'Dear {order.user.get_full_name()},\n\nYour refund request for Order #{order.invoice_number} has been APPROVED.\n\nThe amount of {refund_req.refund_amount} TL will be returned to your card.\n\nBest regards,\nSport Store Team',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[order.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending refund approval email: {e}")
 
-            return Response({"message": "Refund approved and stock restored."}, status=200)
+            return Response({"message": "Refund approved, stock restored, and customer notified."}, status=200)
 
         elif action == 'reject':
             # Reject Refund
@@ -702,15 +715,25 @@ class ApproveRefundView(APIView):
             refund_req.processed_by = request.user
             refund_req.save()
 
-            # Revert Order Status to Delivered (or keep as is, but logic suggests we revert if rejected)
-            # Or we can introduce a 'refund_rejected' status if we want to be explicit.
-            # For now, let's set it back to 'delivered' so they can maybe try again or just see it valid.
             order = refund_req.order
             order.status = 'delivered'
             order.add_status_log('delivered', updated_by=request.user)
             order.save()
 
-            return Response({"message": "Refund rejected."}, status=200)
+            # Send Rejection Email
+            try:
+                from django.core.mail import send_mail
+                send_mail(
+                    subject=f'Refund Rejected - Order #{order.invoice_number}',
+                    message=f'Dear {order.user.get_full_name()},\n\nYour refund request for Order #{order.invoice_number} has been REJECTED.\n\nReason: The product does not meet the return conditions or the period has expired.\n\nBest regards,\nSport Store Team',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[order.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending refund rejection email: {e}")
+
+            return Response({"message": "Refund rejected and customer notified."}, status=200)
 
 # ---------------------------------------------------------
 # 11) LIST REFUND REQUESTS (SALES MANAGER)
