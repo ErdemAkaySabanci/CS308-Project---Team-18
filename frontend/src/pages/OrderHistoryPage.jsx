@@ -57,6 +57,20 @@ function OrderHistoryPage() {
     }
   };
 
+  const handleOpenRefundModal = (order) => {
+    // Check if order is older than 30 days
+    const orderDate = new Date(order.created_at);
+    const daysSinceOrder = Math.floor((new Date() - orderDate) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceOrder > 30) {
+      alert('❌ Refund period has expired. Orders can only be refunded within 30 days of purchase.');
+      return;
+    }
+
+    // Open modal if within 30 days
+    setRefundOrderId(order.id);
+  };
+
   const handleRefundRequest = async () => {
     if (!refundReason.trim()) {
       alert("Please provide a reason for the refund.");
@@ -71,7 +85,9 @@ function OrderHistoryPage() {
       loadOrders(); // Refresh orders to show updated status
     } catch (err) {
       console.error('Refund error:', err);
-      alert('❌ Failed to request refund: ' + (err.message || 'Unknown error'));
+      setRefundOrderId(null);
+      setRefundReason("");
+      alert('❌ ' + (err.response?.data?.error || err.message || 'Failed to request refund'));
     }
   };
 
@@ -194,7 +210,7 @@ function OrderHistoryPage() {
                     {order.status === 'delivered' && (
                       <>
                         <button
-                          onClick={() => setRefundOrderId(order.id)}
+                          onClick={() => handleOpenRefundModal(order)}
                           style={styles.refundButton}
                         >
                           🔄 Request Refund
