@@ -111,7 +111,7 @@ class MessageListView(APIView):
     def get(self, request, pk):
         conversation = get_object_or_404(ChatConversation, pk=pk)
         messages = ChatMessage.objects.filter(conversation=conversation).order_by('created_at')
-        serializer = ChatMessageSerializer(messages, many=True)
+        serializer = ChatMessageSerializer(messages, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -141,7 +141,7 @@ class MessageCreateView(APIView):
         # Update conversation timestamp
         conversation.save()  # This triggers auto_now on updated_at
         
-        serializer = ChatMessageSerializer(message)
+        serializer = ChatMessageSerializer(message, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -153,7 +153,7 @@ class CustomerInfoView(APIView):
         from django.contrib.auth import get_user_model
         from orders.models import Order
         from cart.models import CartItem
-        from products.models import Wishlist
+        from users.models import WishList
         
         User = get_user_model()
         customer = get_object_or_404(User, pk=user_id)
@@ -167,15 +167,40 @@ class CustomerInfoView(APIView):
             'status': o.status
         } for o in orders]
         
-        # Get cart count
-        cart_count = CartItem.objects.filter(user=customer).count()
-        
-        # Get wishlist count
+        # Get cart items
+        cart_items = []
         try:
-            wishlist = Wishlist.objects.get(user=customer)
-            wishlist_count = wishlist.products.count()
-        except Wishlist.DoesNotExist:
-            wishlist_count = 0
+            cart_entries = CartItem.objects.filter(cart__user=customer).select_related('product')
+            for item in cart_entries:
+                product = item.product
+                cart_items.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'price': float(product.discounted_price),
+                    'quantity': item.quantity,
+                    'image': request.build_absolute_uri(product.image.url) if product.image else None
+                })
+        except Exception as e:
+            print(f"Cart fetch error: {e}")
+            pass
+            
+        cart_count = len(cart_items)
+        
+        # Get wishlist items
+        wishlist_items = []
+        try:
+            wishlist_entries = WishList.objects.filter(user=customer).select_related('product')
+            for entry in wishlist_entries:
+                product = entry.product
+                wishlist_items.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'price': float(product.discounted_price),
+                    'image': request.build_absolute_uri(product.image.url) if product.image else None
+                })
+        except Exception as e:
+            print(f"Wishlist fetch error: {e}")
+            pass
         
         return Response({
             'id': customer.id,
@@ -183,5 +208,7 @@ class CustomerInfoView(APIView):
             'email': customer.email,
             'orders': orders_data,
             'cart_count': cart_count,
-            'wishlist_count': wishlist_count
+            'cart_items': cart_items,
+            'wishlist_count': len(wishlist_items),
+            'wishlist_items': wishlist_items
         })

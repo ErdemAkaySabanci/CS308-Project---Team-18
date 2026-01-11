@@ -135,7 +135,7 @@ export const apiService = {
   requestRefund: (orderId, reason) => apiService.post(`/orders/${orderId}/refund/`, { reason }),
 
   // -------------------------------
-  // User Address
+  // User Address & Info
   // -------------------------------
   getAddress: () => apiService.get(`/users/address/`),
 

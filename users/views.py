@@ -295,3 +295,69 @@ class WishListItemView(APIView):
         product = get_object_or_404(Product, id=product_id)
         WishList.objects.filter(user=request.user, product=product).delete()
         return Response({'message': 'Product removed from wishlist.'})
+
+
+class CustomerDetailView(APIView):
+    """
+    Get customer details for support agent including cart and wishlist
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        # Only staff roles (support agent, product manager, sales manager) or admin can access
+        allowed_roles = ['support_agent', 'product_manager', 'sales_manager']
+        user_role = getattr(request.user, 'role', '')
+        if user_role not in allowed_roles and not request.user.is_staff:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+            
+        user = get_object_or_404(CustomUser, pk=pk)
+        
+        # Get orders
+        from orders.models import Order
+        orders = Order.objects.filter(user=user).order_by('-created_at')[:5]
+        
+        orders_data = []
+        for order in orders:
+            orders_data.append({
+                'id': order.id,
+                'date': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                'total': float(order.total_price),
+                'status': order.status
+            })
+            
+        # Get cart count
+        cart_count = 0
+        try:
+            from cart.models import Cart
+            cart = Cart.objects.filter(user=user).first()
+            if cart:
+                cart_count = cart.items.count()
+        except:
+            pass
+            
+        # Get wishlist items
+        wishlist_items = []
+        try:
+            wishlist_entries = WishList.objects.filter(user=user).select_related('product')
+            for entry in wishlist_entries:
+                product = entry.product
+                wishlist_items.append({
+                    'id': product.id,
+                    'name': product.name,
+                    'price': float(product.discounted_price),
+                    'image': request.build_absolute_uri(product.image.url) if product.image else None
+                })
+        except Exception as e:
+            print(f"Wishlist fetch error: {e}")
+            pass
+            
+        return Response({
+            'id': user.id,
+            'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+            'email': user.email,
+            'orders': orders_data,
+            'cart_count': cart_count,
+            'wishlist_count': len(wishlist_items),
+            'wishlist_items': wishlist_items
+        })
+
