@@ -9,7 +9,8 @@ const ChatWidget = () => {
 
     // Hide chat on admin dashboard
     // We check isOpen inside return, but better to return null early
-    const shouldHide = location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
+    const isLoggedIn = authService.isAuthenticated();
+    const shouldHide = !isLoggedIn || location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
