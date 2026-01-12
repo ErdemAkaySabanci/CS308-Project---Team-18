@@ -9,7 +9,8 @@ const ChatWidget = () => {
 
     // Hide chat on admin dashboard
     // We check isOpen inside return, but better to return null early
-    const shouldHide = location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
+    const isLoggedIn = authService.isAuthenticated();
+    const shouldHide = !isLoggedIn || location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
@@ -53,6 +54,18 @@ const ChatWidget = () => {
     }, [conversationId]);
 
     // Auto scroll
+    // Listen for logout event - close chat when user logs out
+    useEffect(() => {
+        const handleLogout = () => {
+            setIsOpen(false);
+            setMessages([]);
+            setConversationId(null);
+            if (ws.current) ws.current.close();
+        };
+
+        window.addEventListener('user-logout', handleLogout);
+        return () => window.removeEventListener('user-logout', handleLogout);
+    }, []);
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
