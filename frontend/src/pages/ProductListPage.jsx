@@ -366,6 +366,15 @@ function ProductListPage() {
                         {p.is_in_stock ? 'In Stock' : 'Out of Stock'}
                       </span>
                     </div>
+                    {/* Rating Display */}
+                    <div style={styles.ratingDisplay}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} style={{ color: star <= Math.round(p.average_rating || 0) ? '#F59E0B' : '#E2E8F0', fontSize: '14px' }}>★</span>
+                      ))}
+                      <span style={styles.ratingValue}>
+                        {p.average_rating ? p.average_rating.toFixed(1) : 'No reviews'}
+                      </span>
+                    </div>
                   </div>
                 </Link>
 
@@ -720,12 +729,23 @@ const styles = {
     height: "8px",
     borderRadius: "50%",
   },
-  stockText: {
+stockText: {
     fontSize: "13px",
     color: "#64748B",
     fontWeight: "500",
   },
-
+  ratingDisplay: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    marginTop: "8px",
+  },
+  ratingValue: {
+    fontSize: "13px",
+    color: "#64748B",
+    marginLeft: "6px",
+    fontWeight: "500",
+  },
   // Card Footer
   cardFooter: {
     padding: "16px 20px",
