@@ -261,12 +261,6 @@ const AccountPage = () => {
             <span style={styles.navIcon}>🔒</span> Security
           </button>
           <button
-            style={{ ...styles.navItem, ...(activeTab === 'orders' ? styles.navItemActive : {}) }}
-            onClick={() => setActiveTab('orders')}
-          >
-            <span style={styles.navIcon}>📦</span> Orders
-          </button>
-          <button
             style={{ ...styles.navItem, ...(activeTab === 'addresses' ? styles.navItemActive : {}) }}
             onClick={() => setActiveTab('addresses')}
           >
@@ -389,7 +383,7 @@ const AccountPage = () => {
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Email</span>
-                  <span style={styles.infoValue}>{user?.email}</span>
+                  <span style={styles.infoValue}>{user?.email || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Home Address</span>
@@ -398,10 +392,6 @@ const AccountPage = () => {
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Phone</span>
                   <span style={styles.infoValue}>{user?.phone || 'Not set'}</span>
-                </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Tax ID</span>
-                  <span style={styles.infoValue}>{user?.tax_id || 'Not set'}</span>
                 </div>
                 <div style={styles.infoRow}>
                   <span style={styles.infoLabel}>Member Since</span>
@@ -436,18 +426,6 @@ const AccountPage = () => {
           </div>
         )}
 
-        {activeTab === 'orders' && (
-          <div style={styles.card}>
-            <div style={styles.cardHeader}>
-              <h2 style={styles.cardTitle}>Order History</h2>
-            </div>
-            <div style={styles.ordersPlaceholder}>
-              <span style={styles.placeholderIcon}>📦</span>
-              <p>View and track all your orders</p>
-              <Link to="/orders" style={styles.viewOrdersButton}>View All Orders</Link>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'addresses' && (
           <div style={styles.card}>
