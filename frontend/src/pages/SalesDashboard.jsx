@@ -140,6 +140,50 @@ const SalesDashboard = () => {
         }
     };
 
+    // Helper functions
+    const getProductImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        return `http://localhost:8000${imagePath}`;
+    };
+
+    const calculateDiscountedPrice = (price, discountRate) => {
+        const p = parseFloat(price);
+        const d = parseFloat(discountRate);
+        if (isNaN(p) || isNaN(d)) return price;
+        return (p * (1 - d / 100)).toFixed(2);
+    };
+
+    // Update product price (Sales Manager feature)
+    const updateProductPrice = async (productId, newPrice) => {
+        setDiscountLoading(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000/api/products-crud/${productId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    price: newPrice
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update price');
+            }
+
+            alert('✅ Price updated successfully!');
+            fetchProducts(); // Refresh list
+        } catch (err) {
+            alert('❌ Error: ' + err.message);
+        } finally {
+            setDiscountLoading(false);
+        }
+    };
+
     // Remove discount from selected products
     const removeDiscountFromSelected = async () => {
         if (selectedProducts.length === 0) {
@@ -691,57 +735,73 @@ const SalesDashboard = () => {
                                         className={`product-card ${selectedProducts.includes(product.id) ? 'selected' : ''}`}
                                         onClick={() => toggleProductSelection(product.id)}
                                     >
-                                        {/* Checkbox */}
-                                        <div className="product-checkbox">
+                                        <div className="checkbox-wrapper">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedProducts.includes(product.id)}
-                                                onChange={() => { }}
-                                                readOnly
+                                                onChange={() => toggleProductSelection(product.id)}
                                             />
                                         </div>
 
-                                        {/* Discount Badge */}
                                         {product.discount_rate > 0 && (
-                                            <div className="discount-badge">
-                                                -{product.discount_rate}%
-                                            </div>
+                                            <div className="discount-badge">-{product.discount_rate}%</div>
                                         )}
 
-                                        {/* Product Image */}
-                                        <div className="product-image">
-                                            {product.image ? (
-                                                <img src={product.image} alt={product.name} />
-                                            ) : (
-                                                <div className="no-image">🏃</div>
-                                            )}
-                                        </div>
+                                        <img
+                                            src={getProductImageUrl(product.image)}
+                                            alt={product.name}
+                                            className="product-image"
+                                        />
 
-                                        {/* Product Info */}
                                         <div className="product-info">
-                                            <h4 className="product-name">{product.name}</h4>
-                                            <p className="product-category">{product.category_name || 'Uncategorized'}</p>
+                                            <h3>{product.name}</h3>
+                                            <p className="category">{product.category_name || 'Uncategorized'}</p>
 
-                                            <div className="product-pricing">
+                                            <div className="price-container">
                                                 {product.discount_rate > 0 ? (
                                                     <>
-                                                        <span className="original-price">
-                                                            {product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                                        </span>
+                                                        <span className="original-price">{product.price} TL</span>
                                                         <span className="discounted-price">
-                                                            {(product.price * (1 - product.discount_rate / 100)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                            {calculateDiscountedPrice(product.price, product.discount_rate)} TL
                                                         </span>
                                                     </>
                                                 ) : (
-                                                    <span className="current-price">
-                                                        {product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                                    </span>
+                                                    <span className="price">{product.price} TL</span>
                                                 )}
                                             </div>
 
-                                            <p className="product-stock">
-                                                Stock: {product.quantity_in_stock}
-                                            </p>
+                                            <div className="stock-info">
+                                                <span>Stock: {product.quantity_in_stock}</span>
+                                            </div>
+
+                                            <button
+                                                className="edit-price-btn"
+                                                style={{
+                                                    marginTop: '10px',
+                                                    padding: '5px 10px',
+                                                    backgroundColor: '#f0ad4e',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    width: '100%',
+                                                    fontSize: '0.9rem'
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newPrice = prompt(`Enter new price for ${product.name}:`, product.price);
+                                                    if (newPrice !== null) {
+                                                        const price = parseFloat(newPrice);
+                                                        if (!isNaN(price) && price >= 0) {
+                                                            updateProductPrice(product.id, price);
+                                                        } else {
+                                                            alert('Please enter a valid price.');
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                ✏️ Edit Price
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -757,204 +817,209 @@ const SalesDashboard = () => {
                         )}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Invoices Tab */}
-            {activeTab === 'invoices' && (
-                <div className="tab-content">
-                    <div className="invoices-section card">
-                        <h2>Invoice Management</h2>
-                        <p className="section-description">
-                            View, print, and download invoices for a specific date range.
-                        </p>
+            {
+                activeTab === 'invoices' && (
+                    <div className="tab-content">
+                        <div className="invoices-section card">
+                            <h2>Invoice Management</h2>
+                            <p className="section-description">
+                                View, print, and download invoices for a specific date range.
+                            </p>
 
-                        <div className="date-filter-container">
-                            <div className="date-inputs">
-                                <div className="input-group">
-                                    <label>Start Date</label>
-                                    <input
-                                        type="date"
-                                        value={invoiceStartDate}
-                                        onChange={(e) => setInvoiceStartDate(e.target.value)}
-                                    />
+                            <div className="date-filter-container">
+                                <div className="date-inputs">
+                                    <div className="input-group">
+                                        <label>Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={invoiceStartDate}
+                                            onChange={(e) => setInvoiceStartDate(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="input-group">
+                                        <label>End Date</label>
+                                        <input
+                                            type="date"
+                                            value={invoiceEndDate}
+                                            onChange={(e) => setInvoiceEndDate(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="input-group">
-                                    <label>End Date</label>
-                                    <input
-                                        type="date"
-                                        value={invoiceEndDate}
-                                        onChange={(e) => setInvoiceEndDate(e.target.value)}
-                                    />
-                                </div>
+                                <button
+                                    className="generate-btn"
+                                    onClick={fetchInvoices}
+                                    disabled={invoiceLoading}
+                                >
+                                    {invoiceLoading ? '⏳ Loading...' : '📄 Fetch Invoices'}
+                                </button>
                             </div>
 
-                            <button
-                                className="generate-btn"
-                                onClick={fetchInvoices}
-                                disabled={invoiceLoading}
-                            >
-                                {invoiceLoading ? '⏳ Loading...' : '📄 Fetch Invoices'}
-                            </button>
+                            {invoiceError && (
+                                <div className="error-alert">
+                                    <span>⚠️</span>
+                                    <p>{invoiceError}</p>
+                                </div>
+                            )}
+
+                            {invoices.length > 0 && (
+                                <div className="invoice-table-container">
+                                    <div className="invoice-table-header">
+                                        <h3>Found {invoices.length} invoice(s)</h3>
+                                    </div>
+                                    <div className="invoice-table-wrapper">
+                                        <table className="invoice-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Invoice #</th>
+                                                    <th>Customer</th>
+                                                    <th>Date</th>
+                                                    <th>Amount</th>
+                                                    <th>Status</th>
+                                                    <th className="no-print">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {invoices.map((invoice) => (
+                                                    <tr key={invoice.id}>
+                                                        <td className="invoice-number">{invoice.invoice_number}</td>
+                                                        <td>
+                                                            <div className="customer-info">
+                                                                <strong>{invoice.customer_name}</strong>
+                                                                <small>{invoice.customer_email}</small>
+                                                            </div>
+                                                        </td>
+                                                        <td>{new Date(invoice.created_at).toLocaleDateString('tr-TR')}</td>
+                                                        <td className="amount">{invoice.total_price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
+                                                        <td>
+                                                            <span className={`status-badge status-${invoice.status}`}>
+                                                                {invoice.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="actions no-print">
+                                                            <button
+                                                                className="action-btn print-btn"
+                                                                onClick={() => handlePrintInvoice(invoice.invoice_url, invoice.invoice_number)}
+                                                                title="Print Invoice"
+                                                            >
+                                                                🖨️
+                                                            </button>
+                                                            <button
+                                                                className="action-btn download-btn"
+                                                                onClick={() => handleDownloadPDF(invoice.invoice_url, invoice.invoice_number)}
+                                                                title="Download PDF"
+                                                            >
+                                                                📥
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {invoices.length === 0 && !invoiceLoading && !invoiceError && (
+                                <div className="empty-state">
+                                    <div className="empty-icon">📄</div>
+                                    <h3>No Invoices Found</h3>
+                                    <p>Select a date range and click "Fetch Invoices" to view invoices.</p>
+                                </div>
+                            )}
                         </div>
-
-                        {invoiceError && (
-                            <div className="error-alert">
-                                <span>⚠️</span>
-                                <p>{invoiceError}</p>
+                    </div>
+                )
+            }
+            {/* Refund Requests Tab */}
+            {
+                activeTab === 'refunds' && (
+                    <div className="tab-content">
+                        <div className="card">
+                            <h2>🔄 Refund Requests</h2>
+                            <div className="refresh-container" style={{ marginBottom: '1rem', textAlign: 'right' }}>
+                                <button className="generate-btn" onClick={fetchRefunds}>
+                                    🔄 Refresh
+                                </button>
                             </div>
-                        )}
 
-                        {invoices.length > 0 && (
-                            <div className="invoice-table-container">
-                                <div className="invoice-table-header">
-                                    <h3>Found {invoices.length} invoice(s)</h3>
+                            {refundsLoading ? (
+                                <div className="loading-state">
+                                    <div className="spinner"></div>
+                                    <p>Loading refunds...</p>
                                 </div>
-                                <div className="invoice-table-wrapper">
-                                    <table className="invoice-table">
+                            ) : refunds.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">✓</div>
+                                    <h3>No Refund Requests</h3>
+                                    <p>There are no refund requests to process.</p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="invoice-table"> {/* Reusing invoice table styles */}
                                         <thead>
                                             <tr>
-                                                <th>Invoice #</th>
+                                                <th>ID</th>
+                                                <th>Order #</th>
                                                 <th>Customer</th>
-                                                <th>Date</th>
+                                                <th>Reason</th>
                                                 <th>Amount</th>
                                                 <th>Status</th>
-                                                <th className="no-print">Actions</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {invoices.map((invoice) => (
-                                                <tr key={invoice.id}>
-                                                    <td className="invoice-number">{invoice.invoice_number}</td>
+                                            {refunds.map(refund => (
+                                                <tr key={refund.id}>
+                                                    <td>#{refund.id}</td>
+                                                    <td>#{refund.order_id}</td>
+                                                    <td>{refund.customer}</td>
+                                                    <td>{refund.reason}</td>
+                                                    <td>{refund.amount} TL</td>
                                                     <td>
-                                                        <div className="customer-info">
-                                                            <strong>{invoice.customer_name}</strong>
-                                                            <small>{invoice.customer_email}</small>
-                                                        </div>
-                                                    </td>
-                                                    <td>{new Date(invoice.created_at).toLocaleDateString('tr-TR')}</td>
-                                                    <td className="amount">{invoice.total_price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</td>
-                                                    <td>
-                                                        <span className={`status-badge status-${invoice.status}`}>
-                                                            {invoice.status}
+                                                        <span className={`status-badge status-${refund.status}`}>
+                                                            {refund.status}
                                                         </span>
                                                     </td>
-                                                    <td className="actions no-print">
-                                                        <button
-                                                            className="action-btn print-btn"
-                                                            onClick={() => handlePrintInvoice(invoice.invoice_url, invoice.invoice_number)}
-                                                            title="Print Invoice"
-                                                        >
-                                                            🖨️
-                                                        </button>
-                                                        <button
-                                                            className="action-btn download-btn"
-                                                            onClick={() => handleDownloadPDF(invoice.invoice_url, invoice.invoice_number)}
-                                                            title="Download PDF"
-                                                        >
-                                                            📥
-                                                        </button>
+                                                    <td>{new Date(refund.created_at).toLocaleDateString()}</td>
+                                                    <td>
+                                                        {refund.status === 'pending' && (
+                                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                                <button
+                                                                    onClick={() => handleApproveRefund(refund.id)}
+                                                                    style={{ backgroundColor: '#4caf50', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRejectRefund(refund.id)}
+                                                                    style={{ backgroundColor: '#f44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        {refund.status !== 'pending' && (
+                                                            <span>Processed by {refund.processed_by}</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                        )}
-
-                        {invoices.length === 0 && !invoiceLoading && !invoiceError && (
-                            <div className="empty-state">
-                                <div className="empty-icon">📄</div>
-                                <h3>No Invoices Found</h3>
-                                <p>Select a date range and click "Fetch Invoices" to view invoices.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-            {/* Refund Requests Tab */}
-            {activeTab === 'refunds' && (
-                <div className="tab-content">
-                    <div className="card">
-                        <h2>🔄 Refund Requests</h2>
-                        <div className="refresh-container" style={{ marginBottom: '1rem', textAlign: 'right' }}>
-                            <button className="generate-btn" onClick={fetchRefunds}>
-                                🔄 Refresh
-                            </button>
+                            )}
                         </div>
-
-                        {refundsLoading ? (
-                            <div className="loading-state">
-                                <div className="spinner"></div>
-                                <p>Loading refunds...</p>
-                            </div>
-                        ) : refunds.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-icon">✓</div>
-                                <h3>No Refund Requests</h3>
-                                <p>There are no refund requests to process.</p>
-                            </div>
-                        ) : (
-                            <div className="table-responsive">
-                                <table className="invoice-table"> {/* Reusing invoice table styles */}
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Order #</th>
-                                            <th>Customer</th>
-                                            <th>Reason</th>
-                                            <th>Amount</th>
-                                            <th>Status</th>
-                                            <th>Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {refunds.map(refund => (
-                                            <tr key={refund.id}>
-                                                <td>#{refund.id}</td>
-                                                <td>#{refund.order_id}</td>
-                                                <td>{refund.customer}</td>
-                                                <td>{refund.reason}</td>
-                                                <td>{refund.amount} TL</td>
-                                                <td>
-                                                    <span className={`status-badge status-${refund.status}`}>
-                                                        {refund.status}
-                                                    </span>
-                                                </td>
-                                                <td>{new Date(refund.created_at).toLocaleDateString()}</td>
-                                                <td>
-                                                    {refund.status === 'pending' && (
-                                                        <div style={{ display: 'flex', gap: '5px' }}>
-                                                            <button
-                                                                onClick={() => handleApproveRefund(refund.id)}
-                                                                style={{ backgroundColor: '#4caf50', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
-                                                            >
-                                                                Approve
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleRejectRefund(refund.id)}
-                                                                style={{ backgroundColor: '#f44336', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
-                                                            >
-                                                                Reject
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    {refund.status !== 'pending' && (
-                                                        <span>Processed by {refund.processed_by}</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

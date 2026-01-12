@@ -106,6 +106,10 @@ class CheckoutView(APIView):
         # Sepeti temizle
         cart.items.all().delete()
 
+        # Cache'i temizle, stok değişimi anında görünsün
+        from django.core.cache import cache
+        cache.clear()
+
         # Generate PDF invoice (optional - skip if reportlab not installed)
         try:
             from .invoice_generator import generate_invoice_pdf
@@ -235,6 +239,10 @@ class OrderListCreateView(generics.ListCreateAPIView):
             product.quantity_in_stock -= item.quantity
             product.version += 1  # Optimistic locking için version artır
             product.save()
+
+        # Cache'i temizle, stok değişimi anında görünsün
+        from django.core.cache import cache
+        cache.clear()
 
         cart.items.all().delete()
         return Response(OrderSerializer(order).data, status=201)
@@ -688,11 +696,20 @@ class ApproveRefundView(APIView):
             order.add_status_log('refunded', updated_by=request.user)
             order.save()
 
-            # Restore Stock
-            for item in order.items.all():
-                item.product.quantity_in_stock += item.quantity
-                item.product.save()
+            # Restore Stock - explicit approach with select_for_update
+            from products.models import Product
+            order_items = order.items.select_related('product').all()
             
+            for item in order_items:
+                # Lock the product row and update stock
+                product = Product.objects.select_for_update().get(id=item.product_id)
+                product.quantity_in_stock += item.quantity
+                product.save()
+            
+            # Cache'i temizle, stok değişimi anında görünsün
+            from django.core.cache import cache
+            cache.clear()
+
             # Send Approval Email
             try:
                 from django.core.mail import send_mail

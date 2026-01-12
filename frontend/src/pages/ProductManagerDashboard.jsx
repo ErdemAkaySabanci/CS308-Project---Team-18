@@ -81,8 +81,8 @@ const ProductManagerDashboard = () => {
             const formData = new FormData();
             formData.append('name', productForm.name);
             formData.append('description', productForm.description || '');
-            formData.append('price', parseFloat(productForm.price));
-            formData.append('cost', parseFloat(productForm.cost) || parseFloat(productForm.price) * 0.5);
+            formData.append('price', parseFloat(productForm.price) || 0);
+            formData.append('cost', parseFloat(productForm.cost) || (parseFloat(productForm.price) || 0) * 0.5);
             formData.append('quantity_in_stock', parseInt(productForm.quantity_in_stock));
             formData.append('category', parseInt(productForm.category));
             formData.append('model', productForm.model || '');
@@ -508,7 +508,11 @@ const ProductManagerDashboard = () => {
                                                     </td>
                                                     <td>{product.name}</td>
                                                     <td>{product.category_name || 'N/A'}</td>
-                                                    <td>{product.price?.toLocaleString('tr-TR')} TL</td>
+                                                    <td>
+                                                        {parseFloat(product.price) > 0
+                                                            ? `${parseFloat(product.price).toLocaleString('tr-TR')} TL`
+                                                            : <span style={{ color: '#f0ad4e', fontWeight: 'bold' }}>Not Set</span>}
+                                                    </td>
                                                     <td>
                                                         <input
                                                             type="number"
@@ -774,6 +778,14 @@ const ProductManagerDashboard = () => {
                                     />
                                 </div>
                                 <div className="pm-form-group">
+                                    <label>Model</label>
+                                    <input
+                                        type="text"
+                                        value={productForm.model}
+                                        onChange={(e) => setProductForm({ ...productForm, model: e.target.value })}
+                                    />
+                                </div>
+                                <div className="pm-form-group">
                                     <label>Category *</label>
                                     <select
                                         value={productForm.category}
@@ -786,7 +798,9 @@ const ProductManagerDashboard = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="pm-form-group">
+                                {/* Price field hidden for PM - Defaulting to 0 */}
+                                {/* Sales Manager will set the price later */}
+                                {/* <div className="pm-form-group">
                                     <label>Price *</label>
                                     <input
                                         type="number"
@@ -795,8 +809,8 @@ const ProductManagerDashboard = () => {
                                         onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                                         required
                                     />
-                                </div>
-                                <div className="pm-form-group">
+                                </div> */}
+                                {/* <div className="pm-form-group">
                                     <label>Cost (default 50% of price)</label>
                                     <input
                                         type="number"
@@ -805,22 +819,15 @@ const ProductManagerDashboard = () => {
                                         onChange={(e) => setProductForm({ ...productForm, cost: e.target.value })}
                                         placeholder="Auto-calculated if empty"
                                     />
-                                </div>
+                                </div> */}
                                 <div className="pm-form-group">
-                                    <label>Stock *</label>
+                                    <label>Stock Quantity *</label>
                                     <input
                                         type="number"
                                         value={productForm.quantity_in_stock}
                                         onChange={(e) => setProductForm({ ...productForm, quantity_in_stock: e.target.value })}
                                         required
-                                    />
-                                </div>
-                                <div className="pm-form-group">
-                                    <label>Model</label>
-                                    <input
-                                        type="text"
-                                        value={productForm.model}
-                                        onChange={(e) => setProductForm({ ...productForm, model: e.target.value })}
+                                        min="0"
                                     />
                                 </div>
                                 <div className="pm-form-group full-width">
@@ -828,7 +835,7 @@ const ProductManagerDashboard = () => {
                                     <textarea
                                         value={productForm.description}
                                         onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                                        rows="3"
+                                        rows="4"
                                     />
                                 </div>
                                 <div className="pm-form-group full-width">
