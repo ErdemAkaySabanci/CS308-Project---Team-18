@@ -9,8 +9,10 @@ function CategoryBar({ onSelect, selectedCategory }) {
     async function loadCategories() {
       try {
         const data = await apiService.get("/categories/");
+        console.log("Categories API response:", data);
         const list = Array.isArray(data) ? data : data.results;
-        setCategories(list);
+        console.log("Categories list:", list);
+        setCategories(list || []);
       } catch (err) {
         console.error("Category load error:", err);
       }

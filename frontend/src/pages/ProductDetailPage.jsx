@@ -43,7 +43,7 @@ function ProductDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiService.get(`/products/${id}/`);
+      const data = await apiService.get(`/products-crud/${id}/`);
       setProduct(data);
     } catch (err) {
       console.error(err);

@@ -35,9 +35,9 @@ function ProductListPage() {
         setLoading(true);
         setError(null);
 
-        let url = '/products/';
+        let url = '/products-crud/';
         if (urlCategoryId) {
-          url = `/products/?category=${urlCategoryId}`;
+          url = `/products-crud/?category=${urlCategoryId}`;
         }
 
         const data = await apiService.get(url);

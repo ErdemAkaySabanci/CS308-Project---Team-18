@@ -1,8 +1,6 @@
 from rest_framework import generics, filters, viewsets
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from django.conf import settings
 from .models import Product, Category
 from .serializers import (
@@ -19,7 +17,6 @@ class ProductPagination(PageNumberPagination):
     max_page_size = 100
 
 
-@method_decorator(cache_page(60 * 5), name='dispatch')  # 5 dakika cache
 class ProductListView(generics.ListAPIView):
     """
     Ürün listesi API
@@ -68,7 +65,6 @@ class ProductListView(generics.ListAPIView):
         return queryset
 
 
-@method_decorator(cache_page(60 * 15), name='dispatch')  # 15 dakika cache
 class ProductDetailView(generics.RetrieveAPIView):
     """Tek bir ürünün detayı"""
     queryset = Product.objects.filter(is_active=True).select_related('category')
@@ -76,7 +72,6 @@ class ProductDetailView(generics.RetrieveAPIView):
     lookup_field = 'pk'
 
 
-@method_decorator(cache_page(60 * 30), name='dispatch')  # 30 dakika cache
 class CategoryListView(generics.ListAPIView):
     """Kategori listesi"""
     queryset = Category.objects.all().prefetch_related('products')
@@ -181,6 +176,10 @@ class ApplyDiscountView(APIView):
         # Tek bir query ile tüm ürünleri güncelle
         Product.objects.bulk_update(products_list, ['discount_rate'])
         updated_count = len(products_list)
+        
+        # Cache'i temizle ki anasayfada indirimli fiyatlar görünsün
+        from django.core.cache import cache
+        cache.clear()
         
         return Response({
             "message": f"Discount applied successfully to {updated_count} product(s) and {len(notified_users_emails)} users notified.",
@@ -314,12 +313,43 @@ class ProductViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def check_product_manager_role(self, request):
-        """Product Manager role kontrolü"""
-        if not hasattr(request.user, 'role') or request.user.role != 'product_manager':
+        """
+        Rol kontrolü:
+        Product Manager role kontrolü
+        Sales Manager da fiyat güncellemesi yapabilir (update/partial_update)
+        """
+        if not hasattr(request.user, 'role'):
+            return Response(
+                {"error": "Permission denied. User has no role."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Sales Manager sadece update/partial_update yapabilir
+        if request.user.role == 'sales_manager' and self.action in ['update', 'partial_update']:
+            return None
+            
+        # Diğer tüm işlemler için Product Manager gerekli
+        if request.user.role != 'product_manager':
             return Response(
                 {"error": "Permission denied. Only Product Managers can perform this action."},
                 status=status.HTTP_403_FORBIDDEN
             )
+        return None
+
+    def perform_create(self, serializer):
+        from django.core.cache import cache
+        serializer.save()
+        cache.clear()  # Clear cache on create
+
+    def perform_update(self, serializer):
+        from django.core.cache import cache
+        serializer.save()
+        cache.clear()  # Clear cache on update
+
+    def perform_destroy(self, instance):
+        from django.core.cache import cache
+        instance.delete()
+        cache.clear()  # Clear cache on delete       
         return None
 
     def create(self, request, *args, **kwargs):

@@ -106,5 +106,9 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         # Eğer cost belirtilmezse ve price değişiyorsa, cost'u güncelle
         if 'cost' not in validated_data or validated_data.get('cost') is None:
             if 'price' in validated_data:
-                validated_data['cost'] = validated_data['price'] * 0.5
+                try:
+                    price = float(validated_data['price'])
+                    validated_data['cost'] = price * 0.5
+                except (ValueError, TypeError):
+                    pass # Keep cost as is if conversion fails
         return super().update(instance, validated_data)
