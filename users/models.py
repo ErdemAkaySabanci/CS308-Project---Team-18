@@ -36,3 +36,20 @@ class WishList(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
+
+
+class SavedCard(models.Model):
+    """Kullanıcının kayıtlı kartları"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_cards')
+    card_last_4 = models.CharField(max_length=4)
+    cardholder_name = models.CharField(max_length=100)
+    expiry_date = models.CharField(max_length=5)  # MM/YY format
+    card_type = models.CharField(max_length=20, default='Visa')  # Visa, Mastercard, etc.
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - **** {self.card_last_4}"

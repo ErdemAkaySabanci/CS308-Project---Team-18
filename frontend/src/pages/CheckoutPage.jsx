@@ -8,6 +8,14 @@ function CheckoutPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+const detectCardType = (cardNumber) => {
+  const num = cardNumber.replace(/\s/g, "");
+  if (num.startsWith("4")) return "Visa";
+  if (num.startsWith("5") || num.startsWith("2")) return "Mastercard";
+  if (num.startsWith("3")) return "Amex";
+  return "Card";
+};
   const [addressInput, setAddressInput] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -16,6 +24,7 @@ function CheckoutPage() {
   // Payment form state
   const [paymentData, setPaymentData] = useState({
     cardNumber: '',
+    saveCard: false,
     cardName: '',
     expiry: '',
     cvv: ''
@@ -109,6 +118,22 @@ function CheckoutPage() {
 
     // Mock payment processing
     try {
+
+      // Save card if checkbox is checked
+      if (paymentData.saveCard) {
+        try {
+          const cardData = {
+            card_last_4: paymentData.cardNumber.replace(/\s/g, "").slice(-4),
+            cardholder_name: paymentData.cardName,
+            expiry_date: paymentData.expiry,
+            card_type: detectCardType(paymentData.cardNumber)
+          };
+          await apiService.saveCard(cardData);
+          showToast("Card saved for future use!", "success");
+        } catch (err) {
+          console.error("Failed to save card:", err);
+        }
+      }
       setProcessingPayment(true);
 
       // Simulate payment delay
@@ -357,6 +382,20 @@ function CheckoutPage() {
                     />
                   </div>
                 </div>
+
+              {/* Save Card Checkbox */}
+              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <input
+                  type="checkbox"
+                  id="saveCard"
+                  checked={paymentData.saveCard}
+                  onChange={(e) => setPaymentData({ ...paymentData, saveCard: e.target.checked })}
+                  style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                />
+                <label htmlFor="saveCard" style={{ fontSize: "14px", color: "#475569", cursor: "pointer" }}>
+                  Save this card for future purchases
+                </label>
+              </div>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 # users/views.py
 
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -11,8 +11,8 @@ from cart.utils import merge_cart
 
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSerializer, WishListSerializer
-from .models import CustomUser, WishList
+from .serializers import UserSerializer, WishListSerializer, SavedCardSerializer
+from .models import CustomUser, WishList, SavedCard
 from products.models import Product
 from django.shortcuts import get_object_or_404
 
@@ -361,3 +361,45 @@ class CustomerDetailView(APIView):
             'wishlist_items': wishlist_items
         })
 
+
+
+        card.is_default = True
+        card.save()
+        return Response({'status': 'Card set as default'})
+
+
+class SavedCardListCreateView(generics.ListCreateAPIView):
+    """List and create saved cards"""
+    serializer_class = SavedCardSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedCard.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        is_first = not SavedCard.objects.filter(user=self.request.user).exists()
+        serializer.save(user=self.request.user, is_default=is_first)
+
+
+class SavedCardDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update or delete a saved card"""
+    serializer_class = SavedCardSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedCard.objects.filter(user=self.request.user)
+
+
+class SetDefaultCardView(APIView):
+    """Set a card as default"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            card = SavedCard.objects.get(pk=pk, user=request.user)
+            SavedCard.objects.filter(user=request.user).update(is_default=False)
+            card.is_default = True
+            card.save()
+            return Response({'status': 'Card set as default'})
+        except SavedCard.DoesNotExist:
+            return Response({'error': 'Card not found'}, status=404)

@@ -177,4 +177,14 @@ export const apiService = {
   deleteAdminProduct: (id) => apiService.delete(`/users/admin/products/${id}/`),
   getAdminOrders: (params) => apiService.get('/users/admin/orders/', { params }),
   updateAdminOrderStatus: (id, status) => apiService.put(`/users/admin/orders/${id}/`, { status }),
+
+
+  // Saved Cards
+  getSavedCards: () => apiService.get('/users/cards/'),
+
+  saveCard: (cardData) => apiService.post('/users/cards/', cardData),
+
+  deleteCard: (cardId) => apiService.delete(`/users/cards/${cardId}/`),
+
+  setDefaultCard: (cardId) => apiService.post(`/users/cards/${cardId}/set-default/`),
 };

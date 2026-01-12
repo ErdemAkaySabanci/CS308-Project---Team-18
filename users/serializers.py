@@ -1,6 +1,6 @@
 # users/serializers.py
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, WishList, SavedCard
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,3 +19,10 @@ class WishListSerializer(serializers.ModelSerializer):
         model = WishList
         fields = ['id', 'product', 'product_name', 'product_price', 'product_image', 'added_at']
         read_only_fields = ['added_at']
+
+
+class SavedCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedCard
+        fields = ['id', 'card_last_4', 'cardholder_name', 'expiry_date', 'card_type', 'is_default', 'created_at']
+        read_only_fields = ['id', 'created_at']
