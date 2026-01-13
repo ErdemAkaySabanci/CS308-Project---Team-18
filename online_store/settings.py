@@ -223,3 +223,42 @@ SESSION_COOKIE_SECURE = False  # Development için False
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+
+# Encryption key for sensitive data (Fernet)
+# IMPORTANT: Generate with: from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())
+# Store in environment variable for production!
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'your-32-byte-base64-encoded-key-here-replace-in-prod')
+
+# Rate Limiting Settings
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_FAIL_OPEN = False  # Block requests if rate limit backend fails
+
+# Rate limit configurations (used in views)
+RATELIMIT_LOGIN = '5/m'  # 5 login attempts per minute
+RATELIMIT_REGISTER = '3/m'  # 3 registration attempts per minute
+RATELIMIT_PASSWORD_RESET = '3/h'  # 3 password reset attempts per hour
+RATELIMIT_API = '100/m'  # 100 API requests per minute
+RATELIMIT_ORDER = '10/m'  # 10 order attempts per minute
+
+# File Upload Security Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100  # Max form fields
+
+ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx']
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Content Security Policy headers (for production)
+# Uncomment and configure for production
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SECURE_BROWSER_XSS_FILTER = True
+# X_FRAME_OPTIONS = 'DENY'
+# SECURE_HSTS_SECONDS = 31536000  # 1 year
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_SSL_REDIRECT = True
