@@ -29,6 +29,14 @@ const COLOR_OPTIONS = [
   'linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%)',
 ];
 
+const CARD_GRADIENTS = [
+  'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+  'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+  'linear-gradient(135deg, #2C3E50 0%, #4CA1AF 100%)',
+  'linear-gradient(135deg, #373B44 0%, #4286f4 100%)',
+  'linear-gradient(135deg, #834d9b 0%, #d04ed6 100%)',
+];
+
 const AccountPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -54,13 +62,13 @@ const AccountPage = () => {
   // Card management state
   const [savedCards, setSavedCards] = useState([]);
   const [showAddCard, setShowAddCard] = useState(false);
+  const [editingCard, setEditingCard] = useState(null);
   const [cardLoading, setCardLoading] = useState(false);
   const [newCard, setNewCard] = useState({
     card_number: '',
-    card_holder_name: '',
-    expiry_month: '',
-    expiry_year: '',
-    cvv: ''
+    cardholder_name: '',
+    expiry_date: '',
+    card_type: 'Visa'
   });
 
   useEffect(() => {
@@ -112,7 +120,6 @@ const AccountPage = () => {
     setCardLoading(true);
     try {
       const response = await apiService.getSavedCards();
-      // Handle different response formats
       const cards = Array.isArray(response) ? response : (response?.data || response?.results || []);
       setSavedCards(cards);
     } catch (error) {
@@ -123,23 +130,74 @@ const AccountPage = () => {
     }
   };
 
+  const resetCardForm = () => {
+    setNewCard({
+      card_number: '',
+      cardholder_name: '',
+      expiry_date: '',
+      card_type: 'Visa'
+    });
+    setShowAddCard(false);
+    setEditingCard(null);
+  };
+
   const handleAddCard = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
     try {
       await apiService.saveCard({
-        card_number: newCard.card_number.replace(/\s/g, ''),
-        card_holder_name: newCard.card_holder_name,
-        expiry_month: newCard.expiry_month,
-        expiry_year: newCard.expiry_year,
+        card_last_4: newCard.card_number.replace(/\s/g, '').slice(-4),
+        cardholder_name: newCard.cardholder_name,
+        expiry_date: newCard.expiry_date,
+        card_type: getCardType(newCard.card_number)
       });
       setMessage({ type: 'success', text: 'Card saved successfully!' });
-      setShowAddCard(false);
-      setNewCard({ card_number: '', card_holder_name: '', expiry_month: '', expiry_year: '', cvv: '' });
+      resetCardForm();
       fetchSavedCards();
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save card. Please try again.' });
+    }
+  };
+
+  const handleEditCard = (card) => {
+    setEditingCard(card);
+    setNewCard({
+      card_number: `•••• •••• •••• ${card.card_last_4}`,
+      cardholder_name: card.cardholder_name || '',
+      expiry_date: card.expiry_date || '',
+      card_type: card.card_type || 'Visa'
+    });
+    setShowAddCard(true);
+  };
+
+  const handleUpdateCard = async (e) => {
+    e.preventDefault();
+    setMessage({ type: '', text: '' });
+
+    try {
+      const token = authService.getToken();
+      const response = await fetch(`http://127.0.0.1:8000/api/users/cards/${editingCard.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cardholder_name: newCard.cardholder_name,
+          expiry_date: newCard.expiry_date
+        })
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Card updated successfully!' });
+        resetCardForm();
+        fetchSavedCards();
+      } else {
+        throw new Error('Failed to update');
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update card.' });
     }
   };
 
@@ -176,12 +234,21 @@ const AccountPage = () => {
     return parts.length ? parts.join(' ') : value;
   };
 
-  const getCardBrand = (number) => {
-    const cleaned = number.replace(/\s/g, '');
-    if (cleaned.startsWith('4')) return { name: 'Visa', color: '#1A1F71' };
-    if (/^5[1-5]/.test(cleaned)) return { name: 'Mastercard', color: '#EB001B' };
-    if (/^3[47]/.test(cleaned)) return { name: 'Amex', color: '#006FCF' };
-    return { name: 'Card', color: '#64748B' };
+  const formatExpiryDate = (value) => {
+    const v = value.replace(/\D/g, '');
+    if (v.length >= 2) {
+      return v.slice(0, 2) + '/' + v.slice(2, 4);
+    }
+    return v;
+  };
+
+  const getCardType = (number) => {
+    const cleaned = (number || '').replace(/\s/g, '');
+    if (cleaned.startsWith('4')) return 'Visa';
+    if (/^5[1-5]/.test(cleaned) || /^2[2-7]/.test(cleaned)) return 'Mastercard';
+    if (/^3[47]/.test(cleaned)) return 'Amex';
+    if (/^6/.test(cleaned)) return 'Discover';
+    return 'Visa';
   };
 
   const handleAvatarSelect = (emoji, color) => {
@@ -534,13 +601,52 @@ const AccountPage = () => {
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Payment Methods</h2>
-              <button style={styles.editButton} onClick={() => setShowAddCard(true)}>+ Add Card</button>
+              {!showAddCard && (
+                <button style={styles.addCardBtn} onClick={() => { resetCardForm(); setShowAddCard(true); }}>
+                  + Add New Card
+                </button>
+              )}
             </div>
 
             {showAddCard && (
-              <div style={styles.addCardForm}>
-                <h3 style={styles.addCardTitle}>Add New Card</h3>
-                <form onSubmit={handleAddCard} style={styles.form}>
+              <div style={styles.addCardSection}>
+                <div style={styles.addCardHeader}>
+                  <h3 style={styles.addCardTitle}>
+                    {editingCard ? '✏️ Edit Card' : '💳 Add New Card'}
+                  </h3>
+                  <button style={styles.closeCardForm} onClick={resetCardForm}>✕</button>
+                </div>
+                
+                {/* Card Preview */}
+                <div style={styles.cardPreview}>
+                  <div style={styles.cardPreviewInner}>
+                    <div style={styles.cardChip}>
+                      <div style={styles.chipLines}></div>
+                    </div>
+                    <div style={styles.cardPreviewNumber}>
+                      {newCard.card_number || '•••• •••• •••• ••••'}
+                    </div>
+                    <div style={styles.cardPreviewBottom}>
+                      <div>
+                        <div style={styles.cardPreviewLabel}>CARD HOLDER</div>
+                        <div style={styles.cardPreviewValue}>
+                          {newCard.cardholder_name || 'YOUR NAME'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={styles.cardPreviewLabel}>EXPIRES</div>
+                        <div style={styles.cardPreviewValue}>
+                          {newCard.expiry_date || 'MM/YY'}
+                        </div>
+                      </div>
+                      <div style={styles.cardBrandPreview}>
+                        {getCardType(newCard.card_number)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={editingCard ? handleUpdateCard : handleAddCard} style={styles.cardForm}>
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>Card Number</label>
                     <input
@@ -551,67 +657,56 @@ const AccountPage = () => {
                       placeholder="1234 5678 9012 3456"
                       maxLength="19"
                       required
+                      disabled={!!editingCard}
                     />
                   </div>
+
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>Cardholder Name</label>
                     <input
                       type="text"
-                      value={newCard.card_holder_name}
-                      onChange={(e) => setNewCard({ ...newCard, card_holder_name: e.target.value.toUpperCase() })}
+                      value={newCard.cardholder_name}
+                      onChange={(e) => setNewCard({ ...newCard, cardholder_name: e.target.value.toUpperCase() })}
                       style={styles.input}
                       placeholder="JOHN DOE"
                       required
                     />
                   </div>
-                  <div style={styles.formRow}>
+
+                  <div style={styles.formRowTwo}>
                     <div style={styles.inputGroup}>
-                      <label style={styles.label}>Expiry Month</label>
-                      <select
-                        value={newCard.expiry_month}
-                        onChange={(e) => setNewCard({ ...newCard, expiry_month: e.target.value })}
-                        style={styles.input}
-                        required
-                      >
-                        <option value="">MM</option>
-                        {[...Array(12)].map((_, i) => (
-                          <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
-                            {String(i + 1).padStart(2, '0')}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={styles.inputGroup}>
-                      <label style={styles.label}>Expiry Year</label>
-                      <select
-                        value={newCard.expiry_year}
-                        onChange={(e) => setNewCard({ ...newCard, expiry_year: e.target.value })}
-                        style={styles.input}
-                        required
-                      >
-                        <option value="">YYYY</option>
-                        {[...Array(10)].map((_, i) => {
-                          const year = new Date().getFullYear() + i;
-                          return <option key={year} value={year}>{year}</option>;
-                        })}
-                      </select>
-                    </div>
-                    <div style={styles.inputGroup}>
-                      <label style={styles.label}>CVV</label>
+                      <label style={styles.label}>Expiry Date</label>
                       <input
-                        type="password"
-                        value={newCard.cvv}
-                        onChange={(e) => setNewCard({ ...newCard, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                        type="text"
+                        value={newCard.expiry_date}
+                        onChange={(e) => setNewCard({ ...newCard, expiry_date: formatExpiryDate(e.target.value) })}
                         style={styles.input}
-                        placeholder="***"
-                        maxLength="4"
+                        placeholder="MM/YY"
+                        maxLength="5"
                         required
                       />
                     </div>
+                    {!editingCard && (
+                      <div style={styles.inputGroup}>
+                        <label style={styles.label}>CVV</label>
+                        <input
+                          type="password"
+                          style={styles.input}
+                          placeholder="•••"
+                          maxLength="4"
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div style={styles.buttonGroup}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setShowAddCard(false)}>Cancel</button>
-                    <button type="submit" style={styles.saveButton}>Save Card</button>
+
+                  <div style={styles.cardFormActions}>
+                    <button type="button" style={styles.cancelButton} onClick={resetCardForm}>
+                      Cancel
+                    </button>
+                    <button type="submit" style={styles.saveCardBtn}>
+                      {editingCard ? 'Update Card' : 'Save Card'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -622,44 +717,62 @@ const AccountPage = () => {
                 <div style={styles.spinner}></div>
                 <p>Loading cards...</p>
               </div>
-            ) : savedCards.length === 0 ? (
-              <div style={styles.ordersPlaceholder}>
-                <span style={styles.placeholderIcon}>💳</span>
-                <p>No saved cards yet</p>
-                <p style={styles.placeholderSubtext}>Add a card for faster checkout</p>
+            ) : savedCards.length === 0 && !showAddCard ? (
+              <div style={styles.emptyCards}>
+                <div style={styles.emptyCardIcon}>💳</div>
+                <h3 style={styles.emptyCardTitle}>No payment methods</h3>
+                <p style={styles.emptyCardText}>Add a card to make checkout faster and easier</p>
+                <button style={styles.addFirstCard} onClick={() => setShowAddCard(true)}>
+                  + Add Your First Card
+                </button>
               </div>
             ) : (
-              <div style={styles.cardsList}>
-                {savedCards.map((card) => {
-                  const brand = getCardBrand(card.card_number || '');
+              <div style={styles.cardsGrid}>
+                {savedCards.map((card, index) => {
+                  const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
                   return (
-                    <div key={card.id} style={styles.savedCard}>
-                      <div style={styles.cardVisual}>
-                        <div style={{ ...styles.cardBrand, backgroundColor: brand.color }}>
-                          {brand.name}
-                        </div>
-                        <div style={styles.cardNumber}>
-                          •••• •••• •••• {card.last_four || card.card_number?.slice(-4)}
-                        </div>
-                        <div style={styles.cardDetails}>
-                          <span>{card.card_holder_name}</span>
-                          <span>{card.expiry_month}/{card.expiry_year}</span>
-                        </div>
+                    <div key={card.id} style={styles.creditCard}>
+                      <div style={{ ...styles.creditCardInner, background: gradient }}>
                         {card.is_default && (
-                          <div style={styles.defaultBadge}>Default</div>
+                          <div style={styles.defaultRibbon}>DEFAULT</div>
                         )}
+                        <div style={styles.cardTopRow}>
+                          <div style={styles.cardChipSmall}>
+                            <div style={styles.chipLinesSmall}></div>
+                          </div>
+                          <div style={styles.cardBrandBadge}>{card.card_type || 'VISA'}</div>
+                        </div>
+                        <div style={styles.cardNumberDisplay}>
+                          •••• •••• •••• {card.card_last_4 || '••••'}
+                        </div>
+                        <div style={styles.cardBottomRow}>
+                          <div>
+                            <div style={styles.cardLabel}>CARD HOLDER</div>
+                            <div style={styles.cardHolderName}>{card.cardholder_name || 'CARDHOLDER'}</div>
+                          </div>
+                          <div>
+                            <div style={styles.cardLabel}>EXPIRES</div>
+                            <div style={styles.cardExpiry}>{card.expiry_date || '••/••'}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div style={styles.cardActions}>
+                      <div style={styles.cardActionsBar}>
                         {!card.is_default && (
                           <button
-                            style={styles.setDefaultBtn}
+                            style={styles.actionBtn}
                             onClick={() => handleSetDefault(card.id)}
                           >
-                            Set as Default
+                            ⭐ Set Default
                           </button>
                         )}
                         <button
-                          style={styles.deleteCardBtn}
+                          style={styles.actionBtn}
+                          onClick={() => handleEditCard(card)}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          style={styles.actionBtnDanger}
                           onClick={() => handleDeleteCard(card.id)}
                         >
                           🗑️ Delete
@@ -703,7 +816,7 @@ const styles = {
   navItemActive: { backgroundColor: '#FFF7ED', color: '#FF7A00', fontWeight: '600' },
   navIcon: { fontSize: '18px' },
   logoutButton: { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: 'none', borderRadius: '12px', backgroundColor: '#FEF2F2', color: '#DC2626', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', marginTop: '16px' },
-  mainContent: { flex: 1, padding: '32px 48px', maxWidth: '800px' },
+  mainContent: { flex: 1, padding: '32px 48px', maxWidth: '900px' },
   message: { padding: '14px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '14px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '10px' },
   card: { backgroundColor: '#FFFFFF', borderRadius: '20px', padding: '32px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', paddingBottom: '20px', borderBottom: '1px solid #E2E8F0' },
@@ -714,9 +827,10 @@ const styles = {
   infoLabel: { fontSize: '15px', color: '#64748B', fontWeight: '500' },
   infoValue: { fontSize: '15px', color: '#1E293B', fontWeight: '600' },
   form: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' },
+  formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
+  formRowTwo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '14px', fontWeight: '600', color: '#374151' },
+  label: { fontSize: '13px', fontWeight: '600', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' },
   input: { padding: '14px 16px', fontSize: '15px', border: '2px solid #E2E8F0', borderRadius: '12px', outline: 'none', transition: 'all 0.2s ease', backgroundColor: '#F8FAFC' },
   inputHint: { fontSize: '12px', color: '#94A3B8' },
   buttonGroup: { display: 'flex', gap: '16px', marginTop: '8px' },
@@ -725,24 +839,64 @@ const styles = {
   ordersPlaceholder: { textAlign: 'center', padding: '48px 24px', color: '#64748B' },
   placeholderIcon: { fontSize: '48px', display: 'block', marginBottom: '16px' },
   placeholderSubtext: { fontSize: '14px', color: '#94A3B8', marginTop: '8px' },
-  viewOrdersButton: { display: 'inline-block', marginTop: '20px', padding: '14px 32px', backgroundColor: '#FF7A00', color: '#FFFFFF', textDecoration: 'none', borderRadius: '12px', fontWeight: '600', fontSize: '15px', boxShadow: '0 4px 14px rgba(255, 122, 0, 0.4)' },
-  // Card styles
-  addCardForm: { backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '24px', marginBottom: '24px' },
-  addCardTitle: { fontSize: '18px', fontWeight: '600', color: '#1E293B', margin: '0 0 20px 0' },
-  cardsList: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  savedCard: { border: '2px solid #E2E8F0', borderRadius: '16px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s ease' },
-  cardVisual: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  cardBrand: { display: 'inline-block', padding: '4px 12px', borderRadius: '6px', color: '#FFFFFF', fontSize: '12px', fontWeight: '700', width: 'fit-content' },
-  cardNumber: { fontSize: '18px', fontWeight: '600', color: '#1E293B', letterSpacing: '1px' },
-  cardDetails: { display: 'flex', gap: '24px', fontSize: '14px', color: '#64748B' },
-  defaultBadge: { display: 'inline-block', padding: '4px 10px', backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: '6px', fontSize: '12px', fontWeight: '600', width: 'fit-content', marginTop: '4px' },
-  cardActions: { display: 'flex', gap: '12px', alignItems: 'center' },
-  setDefaultBtn: { padding: '10px 16px', border: '2px solid #E2E8F0', borderRadius: '10px', backgroundColor: 'transparent', color: '#64748B', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease' },
-  deleteCardBtn: { padding: '10px 16px', border: 'none', borderRadius: '10px', backgroundColor: '#FEE2E2', color: '#DC2626', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease' },
+
+  // Payment Methods Styles
+  addCardBtn: { padding: '12px 24px', border: 'none', borderRadius: '12px', background: 'linear-gradient(135deg, #FF7A00 0%, #FF9A40 100%)', color: '#FFFFFF', fontSize: '14px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255, 122, 0, 0.3)', transition: 'all 0.2s ease' },
+  
+  addCardSection: { backgroundColor: '#F8FAFC', borderRadius: '16px', padding: '24px', marginBottom: '24px' },
+  addCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  addCardTitle: { fontSize: '18px', fontWeight: '700', color: '#1E293B', margin: 0 },
+  closeCardForm: { width: '36px', height: '36px', border: 'none', borderRadius: '10px', backgroundColor: '#E2E8F0', color: '#64748B', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+
+  // Card Preview
+  cardPreview: { marginBottom: '24px', display: 'flex', justifyContent: 'center' },
+  cardPreviewInner: { width: '340px', height: '200px', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', borderRadius: '16px', padding: '24px', color: '#FFFFFF', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' },
+  cardChip: { width: '50px', height: '38px', background: 'linear-gradient(135deg, #ffd700 0%, #ffb700 100%)', borderRadius: '8px', marginBottom: '24px', position: 'relative', overflow: 'hidden' },
+  chipLines: { position: 'absolute', top: '50%', left: '0', right: '0', height: '60%', transform: 'translateY(-50%)', background: 'repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 10px)' },
+  cardPreviewNumber: { fontSize: '22px', fontWeight: '500', letterSpacing: '3px', marginBottom: '24px', fontFamily: "'Courier New', monospace" },
+  cardPreviewBottom: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
+  cardPreviewLabel: { fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px', letterSpacing: '1px' },
+  cardPreviewValue: { fontSize: '14px', fontWeight: '600', letterSpacing: '1px' },
+  cardBrandPreview: { fontSize: '20px', fontWeight: '700', letterSpacing: '2px' },
+
+  cardForm: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  cardFormActions: { display: 'flex', gap: '16px', marginTop: '8px' },
+  saveCardBtn: { flex: 2, padding: '16px', border: 'none', borderRadius: '12px', background: 'linear-gradient(135deg, #FF7A00 0%, #FF9A40 100%)', color: '#FFFFFF', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255, 122, 0, 0.4)' },
+
+  // Empty State
+  emptyCards: { textAlign: 'center', padding: '60px 24px' },
+  emptyCardIcon: { fontSize: '64px', marginBottom: '16px' },
+  emptyCardTitle: { fontSize: '20px', fontWeight: '700', color: '#1E293B', margin: '0 0 8px 0' },
+  emptyCardText: { fontSize: '15px', color: '#64748B', margin: '0 0 24px 0' },
+  addFirstCard: { padding: '14px 32px', border: 'none', borderRadius: '12px', background: 'linear-gradient(135deg, #FF7A00 0%, #FF9A40 100%)', color: '#FFFFFF', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255, 122, 0, 0.3)' },
+
+  // Cards Grid
+  cardsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' },
+  
+  creditCard: { borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' },
+  creditCardInner: { padding: '24px', color: '#FFFFFF', position: 'relative', minHeight: '180px', overflow: 'hidden' },
+  defaultRibbon: { position: 'absolute', top: '16px', right: '-30px', backgroundColor: '#10B981', color: '#FFFFFF', padding: '6px 40px', fontSize: '10px', fontWeight: '700', transform: 'rotate(45deg)', letterSpacing: '1px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' },
+  cardTopRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' },
+  cardBrandBadge: { fontSize: '16px', fontWeight: '700', letterSpacing: '2px', textShadow: '0 2px 4px rgba(0,0,0,0.3)' },
+  cardChipSmall: { width: '45px', height: '34px', background: 'linear-gradient(135deg, #ffd700 0%, #ffb700 100%)', borderRadius: '6px', position: 'relative', overflow: 'hidden' },
+  chipLinesSmall: { position: 'absolute', top: '50%', left: '0', right: '0', height: '60%', transform: 'translateY(-50%)', background: 'repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(0,0,0,0.1) 6px, rgba(0,0,0,0.1) 8px)' },
+  cardNumberDisplay: { fontSize: '22px', fontWeight: '500', letterSpacing: '3px', marginBottom: '20px', fontFamily: "'Courier New', monospace", textShadow: '0 2px 4px rgba(0,0,0,0.3)' },
+  cardBottomRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
+  cardLabel: { fontSize: '9px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px', letterSpacing: '1px', textTransform: 'uppercase' },
+  cardHolderName: { fontSize: '14px', fontWeight: '600', letterSpacing: '1px', textShadow: '0 1px 2px rgba(0,0,0,0.3)' },
+  cardExpiry: { fontSize: '14px', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.3)' },
+
+  cardActionsBar: { display: 'flex', gap: '8px', padding: '12px 16px', backgroundColor: '#FFFFFF', borderTop: '1px solid #E2E8F0' },
+  actionBtn: { flex: 1, padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: '8px', backgroundColor: '#FFFFFF', color: '#64748B', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' },
+  actionBtnDanger: { flex: 1, padding: '10px 12px', border: 'none', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' },
 };
 
 const styleSheet = document.createElement("style");
-styleSheet.innerText = `@keyframes spin { to { transform: rotate(360deg); } } input:focus { border-color: #FF7A00 !important; background-color: #FFFFFF !important; } select:focus { border-color: #FF7A00 !important; background-color: #FFFFFF !important; }`;
+styleSheet.innerText = `
+  @keyframes spin { to { transform: rotate(360deg); } }
+  input:focus, select:focus { border-color: #FF7A00 !important; background-color: #FFFFFF !important; }
+  input:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
 document.head.appendChild(styleSheet);
 
 export default AccountPage;
