@@ -10,7 +10,7 @@ from django.utils import timezone
 from orders.models import Order
 
 # Update Order #57
-ORDER_ID = 64
+ORDER_ID = 66
 
 try:
     order = Order.objects.get(id=ORDER_ID)

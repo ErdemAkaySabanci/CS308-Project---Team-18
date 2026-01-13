@@ -25,6 +25,7 @@ import ProductManagerDashboard from "./pages/ProductManagerDashboard";
 // Components
 import Navbar from "./components/Navbar";
 import ChatWidget from "./components/ChatWidget";
+import { ToastProvider } from "./components/Toast";
 
 
 // Route Guards
@@ -58,43 +59,45 @@ function App() {
   }
 
   return (
-    <Router>
-      <Navbar />
+    <ToastProvider>
+      <Router>
+        <Navbar />
 
-      <Routes>
-        {/* AUTH */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Routes>
+          {/* AUTH */}
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-        {/* STORE */}
-        <Route path="/" element={<ProductListPage />} />
-        <Route path="/products/:id" element={<ProductDetailPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-        <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
-        <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+          {/* STORE */}
+          <Route path="/" element={<ProductListPage />} />
+          <Route path="/products/:id" element={<ProductDetailPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+          <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><OrderHistoryPage /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
 
-        {/* SALES MANAGER */}
-        <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
+          {/* SALES MANAGER */}
+          <Route path="/sales-dashboard" element={<ProtectedRoute><SalesDashboard /></ProtectedRoute>} />
 
-        <Route path="/product-manager-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
+          <Route path="/product-manager-dashboard" element={<ProtectedRoute><ProductManagerDashboard /></ProtectedRoute>} />
 
-        {/* SUPPORT AGENT */}
-        <Route path="/support-dashboard" element={<ProtectedRoute><SupportAgentDashboard /></ProtectedRoute>} />
+          {/* SUPPORT AGENT */}
+          <Route path="/support-dashboard" element={<ProtectedRoute><SupportAgentDashboard /></ProtectedRoute>} />
 
-        {/* ADMIN */}
-        <Route path="/admin-login" element={<AdminLoginPage />} />
-        <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          {/* ADMIN */}
+          <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
-        {/* DEFAULT */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* DEFAULT */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
-      {/* Floating Chat Widget - available on all pages */}
-      <ChatWidget />
-    </Router>
+        {/* Floating Chat Widget - available on all pages */}
+        <ChatWidget />
+      </Router>
+    </ToastProvider>
   );
 }
 
