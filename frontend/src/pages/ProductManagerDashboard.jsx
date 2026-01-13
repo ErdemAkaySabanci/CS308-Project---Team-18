@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ProductManagerDashboard.css';
+import { useToast } from '../components/Toast';
 
 const ProductManagerDashboard = () => {
+    const toast = useToast();
     // State management
     const [activeTab, setActiveTab] = useState('products'); // 'products', 'orders', 'comments'
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all'); // Category filter for products
@@ -109,13 +111,13 @@ const ProductManagerDashboard = () => {
                 throw new Error(errorData.error || 'Failed to save product');
             }
 
-            alert(`✅ Product ${editingProduct ? 'updated' : 'added'} successfully!`);
+            toast.success(`Product ${editingProduct ? 'updated' : 'added'} successfully!`);
             setShowProductModal(false);
             setEditingProduct(null);
             resetProductForm();
             fetchProducts();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -131,10 +133,10 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to delete product');
 
-            alert('✅ Product deleted successfully!');
+            toast.success('Product deleted successfully!');
             fetchProducts();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -170,7 +172,7 @@ const ProductManagerDashboard = () => {
             if (!response.ok) throw new Error('Failed to update stock');
             fetchProducts();
         } catch (err) {
-            alert('❌ Error updating stock: ' + err.message);
+            toast.error('Error updating stock: ' + err.message);
         }
     };
 
@@ -227,13 +229,13 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to save category');
 
-            alert(`✅ Category ${editingCategory ? 'updated' : 'added'} successfully!`);
+            toast.success(`Category ${editingCategory ? 'updated' : 'added'} successfully!`);
             setShowCategoryModal(false);
             setEditingCategory(null);
             setCategoryForm({ name: '', description: '' });
             fetchCategories();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -249,10 +251,10 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to delete category');
 
-            alert('✅ Category deleted successfully!');
+            toast.success('Category deleted successfully!');
             fetchCategories();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -290,10 +292,10 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to update status');
 
-            alert('✅ Order status updated!');
+            toast.success('Order status updated!');
             fetchOrders();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -316,9 +318,9 @@ const ProductManagerDashboard = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
 
-            alert('📥 Invoice downloaded successfully!');
+            toast.success('Invoice downloaded successfully!');
         } catch (err) {
-            alert('❌ Failed to download invoice: ' + err.message);
+            toast.error('Failed to download invoice: ' + err.message);
         }
     };
 
@@ -353,10 +355,10 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to approve comment');
 
-            alert('✅ Comment approved!');
+            toast.success('Comment approved!');
             fetchPendingComments();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
@@ -376,10 +378,10 @@ const ProductManagerDashboard = () => {
 
             if (!response.ok) throw new Error('Failed to reject comment');
 
-            alert('✅ Comment rejected!');
+            toast.success('Comment rejected!');
             fetchPendingComments();
         } catch (err) {
-            alert('❌ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         }
     };
 
