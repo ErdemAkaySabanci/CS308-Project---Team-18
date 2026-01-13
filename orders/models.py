@@ -4,6 +4,34 @@ from products.models import Product
 from decimal import Decimal
 from django.utils import timezone
 
+
+class EncryptedTextField(models.TextField):
+    """Custom field that encrypts data at rest."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_prep_value(self, value):
+        """Encrypt before saving to database."""
+        if value is None or value == '':
+            return value
+        try:
+            from utils.security import encrypt_data
+            return encrypt_data(str(value))
+        except Exception:
+            return value
+
+    def from_db_value(self, value, expression, connection):
+        """Decrypt when reading from database."""
+        if value is None or value == '':
+            return value
+        try:
+            from utils.security import decrypt_data
+            return decrypt_data(value)
+        except Exception:
+            return value
+
+
 class Order(models.Model):
     ORDER_STATUS = (
         ('processing', 'Processing'),
@@ -17,7 +45,7 @@ class Order(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='processing')
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    delivery_address = models.TextField()
+    delivery_address = EncryptedTextField()  # Encrypted for privacy
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -26,7 +54,7 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=50, default="Credit Card")
     card_last_4 = models.CharField(max_length=4, blank=True)  # Last 4 digits only for security
     invoice_number = models.CharField(max_length=100, unique=True, blank=True)
-    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    transaction_id = EncryptedTextField(blank=True, null=True)  # Encrypted transaction ID
     invoice_file = models.FileField(upload_to='invoices/', null=True, blank=True)
     # ---------------------------------------------------
 
