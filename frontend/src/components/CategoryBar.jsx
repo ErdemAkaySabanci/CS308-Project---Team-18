@@ -8,10 +8,9 @@ function CategoryBar({ onSelect, selectedCategory }) {
   useEffect(() => {
     async function loadCategories() {
       try {
-        const data = await apiService.get("/categories/");
-        console.log("Categories API response:", data);
+        // Add timestamp to prevent caching
+        const data = await apiService.get(`/categories/?_t=${Date.now()}`);
         const list = Array.isArray(data) ? data : data.results;
-        console.log("Categories list:", list);
         setCategories(list || []);
       } catch (err) {
         console.error("Category load error:", err);

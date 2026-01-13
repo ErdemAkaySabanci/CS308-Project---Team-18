@@ -528,3 +528,70 @@ input:checked+.slider:before {
         transform: rotate(360deg);
     }
 }
+
+/* --- MODAL STYLES --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modal-content h3 {
+    margin: 0 0 24px 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    outline: none;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: #4f46e5;
+}
+
+/* Refund statuses */
+.status-pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-approved {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.status-rejected {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+/* Disabled button style */
+.btn-delete:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

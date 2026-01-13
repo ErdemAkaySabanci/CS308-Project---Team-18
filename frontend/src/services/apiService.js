@@ -29,13 +29,29 @@ export const apiService = {
   // -------------------------------
   // Generic GET
   // -------------------------------
-  get: async (endpoint) => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  get: async (endpoint, options = {}) => {
+    let url = `${API_BASE_URL}${endpoint}`;
+
+    // Handle query params
+    if (options.params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value);
+        }
+      });
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += (url.includes('?') ? '&' : '?') + queryString;
+      }
+    }
+
+    const response = await fetch(url, {
       method: "GET",
       credentials: 'include',
       headers: getHeaders(),
     });
-    return handleResponse(response, () => apiService.get(endpoint));
+    return handleResponse(response, () => apiService.get(endpoint, options));
   },
 
   // -------------------------------
@@ -170,6 +186,7 @@ export const apiService = {
   // -------------------------------
   getAdminStatistics: () => apiService.get('/users/admin/statistics/'),
   getAdminUsers: (params) => apiService.get('/users/admin/users/', { params }),
+  createAdminUser: (data) => apiService.post('/users/admin/users/create/', data),
   updateUserRole: (userId, data) => apiService.put(`/users/admin/users/${userId}/`, data),
   getAdminAnalytics: () => apiService.get('/users/admin/analytics/'),
 
@@ -181,10 +198,31 @@ export const apiService = {
 
   // Saved Cards
   getSavedCards: () => apiService.get('/users/cards/'),
-
   saveCard: (cardData) => apiService.post('/users/cards/', cardData),
-
   deleteCard: (cardId) => apiService.delete(`/users/cards/${cardId}/`),
-
   setDefaultCard: (cardId) => apiService.post(`/users/cards/${cardId}/set-default/`),
+
+  // Admin Categories
+  getAdminCategories: () => apiService.get('/users/admin/categories/'),
+  createAdminCategory: (data) => apiService.post('/users/admin/categories/', data),
+  updateAdminCategory: (id, data) => apiService.put(`/users/admin/categories/${id}/`, data),
+  deleteAdminCategory: (id) => apiService.delete(`/users/admin/categories/${id}/`),
+
+  // Admin Reviews
+  getAdminReviews: (params) => apiService.get('/users/admin/reviews/', { params }),
+  updateAdminReview: (id, data) => apiService.put(`/users/admin/reviews/${id}/`, data),
+  deleteAdminReview: (id) => apiService.delete(`/users/admin/reviews/${id}/`),
+
+  // Admin Refunds
+  getAdminRefunds: (params) => apiService.get('/users/admin/refunds/', { params }),
+  updateAdminRefund: (id, data) => apiService.put(`/users/admin/refunds/${id}/`, data),
+
+  // Admin Carts
+  getAdminCarts: () => apiService.get('/users/admin/carts/'),
+
+  // Admin Wishlists
+  getAdminWishlists: () => apiService.get('/users/admin/wishlists/'),
+
+  // Admin Chats
+  getAdminChats: () => apiService.get('/users/admin/chats/'),
 };
