@@ -10,7 +10,7 @@ const ChatWidget = () => {
     // Hide chat on admin dashboard
     // We check isOpen inside return, but better to return null early
     const isLoggedIn = authService.isAuthenticated();
-    const shouldHide = !isLoggedIn || location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard');
+    const shouldHide = location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/support-dashboard') || location.pathname.startsWith('/admin-login');
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
@@ -87,7 +87,8 @@ const ChatWidget = () => {
 
     const fetchMessages = async () => {
         try {
-            const data = await apiService.getChatMessages(conversationId);
+            const sessionKey = localStorage.getItem('chat_session_key');
+            const data = await apiService.getChatMessages(conversationId, sessionKey);
             if (data) {
                 setMessages(data);
             }
@@ -135,7 +136,8 @@ const ChatWidget = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
 
         try {
-            const newMessage = await apiService.sendChatMessage(conversationId, messageText, fileToSend);
+            const sessionKey = localStorage.getItem('chat_session_key');
+            const newMessage = await apiService.sendChatMessage(conversationId, messageText, fileToSend, sessionKey);
             if (newMessage) {
                 setMessages(prev => [...prev, newMessage]);
             }

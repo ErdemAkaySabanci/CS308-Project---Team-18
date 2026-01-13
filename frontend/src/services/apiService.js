@@ -172,11 +172,16 @@ export const apiService = {
   getConversation: (id) => apiService.get(`/chat/conversations/${id}/`),
   claimConversation: (id) => apiService.post(`/chat/conversations/${id}/claim/`),
   resolveConversation: (id) => apiService.post(`/chat/conversations/${id}/resolve/`),
-  getChatMessages: (conversationId) => apiService.get(`/chat/conversations/${conversationId}/messages/`),
-  sendChatMessage: (conversationId, message, attachment = null) => {
+  getChatMessages: (conversationId, sessionKey = null) => {
+    let url = `/chat/conversations/${conversationId}/messages/`;
+    if (sessionKey) url += `?session_key=${sessionKey}`;
+    return apiService.get(url);
+  },
+  sendChatMessage: (conversationId, message, attachment = null, sessionKey = null) => {
     const formData = new FormData();
     if (message) formData.append('message', message);
     if (attachment) formData.append('attachment', attachment);
+    if (sessionKey) formData.append('session_key', sessionKey);
     return apiService.postFormData(`/chat/conversations/${conversationId}/messages/send/`, formData);
   },
   getCustomerInfo: (userId) => apiService.get(`/chat/customer/${userId}/`),

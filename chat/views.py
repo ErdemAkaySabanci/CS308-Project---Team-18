@@ -106,10 +106,22 @@ class ResolveConversationView(APIView):
 
 class MessageListView(APIView):
     """Get messages for a conversation"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
         conversation = get_object_or_404(ChatConversation, pk=pk)
+        
+        # Access control
+        if request.user.is_authenticated:
+            is_owner = conversation.customer == request.user
+            is_agent = getattr(request.user, 'role', '') == 'support_agent'
+            if not is_owner and not is_agent:
+                return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            session_key = request.query_params.get('session_key') or request.headers.get('X-Session-Key')
+            if not session_key or conversation.session_key != session_key:
+                return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
+        
         messages = ChatMessage.objects.filter(conversation=conversation).order_by('created_at')
         serializer = ChatMessageSerializer(messages, many=True, context={'request': request})
         return Response(serializer.data)
@@ -117,10 +129,25 @@ class MessageListView(APIView):
 
 class MessageCreateView(APIView):
     """Send a message in a conversation"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, pk):
         conversation = get_object_or_404(ChatConversation, pk=pk)
+        
+        # Access control
+        if request.user.is_authenticated:
+            is_owner = conversation.customer == request.user
+            is_agent = getattr(request.user, 'role', '') == 'support_agent'
+            if not is_owner and not is_agent:
+                return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
+            sender = request.user
+            is_customer = getattr(request.user, 'role', 'customer') != 'support_agent'
+        else:
+            session_key = request.data.get('session_key') or request.headers.get('X-Session-Key')
+            if not session_key or conversation.session_key != session_key:
+                return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
+            sender = None
+            is_customer = True
         
         message_text = request.data.get('message')
         attachment = request.FILES.get('attachment')
@@ -128,18 +155,16 @@ class MessageCreateView(APIView):
         if not message_text and not attachment:
             return Response({"error": "Message or attachment required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        is_customer = getattr(request.user, 'role', 'customer') == 'customer'
-        
         message = ChatMessage.objects.create(
             conversation=conversation,
-            sender=request.user,
+            sender=sender,
             is_customer=is_customer,
             message=message_text or '',
             attachment=attachment
         )
         
         # Update conversation timestamp
-        conversation.save()  # This triggers auto_now on updated_at
+        conversation.save()
         
         serializer = ChatMessageSerializer(message, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
