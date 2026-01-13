@@ -8,8 +8,8 @@ const Navbar = () => {
     const location = useLocation();
     const isAuthenticated = authService.isAuthenticated();
 
-    // Hide navbar on admin dashboard
-    if (location.pathname.startsWith('/admin-dashboard')) return null;
+    // Hide navbar on admin pages (admin-dashboard and admin-login)
+    if (location.pathname.startsWith('/admin-dashboard') || location.pathname.startsWith('/admin-login')) return null;
 
     // Get user role
     const user = isAuthenticated ? JSON.parse(localStorage.getItem('user') || '{}') : null;

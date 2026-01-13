@@ -9,6 +9,7 @@ import Dashboard from "./components/Dashboard";
 import AccountPage from "./pages/AccountPage";
 import SupportAgentDashboard from "./pages/SupportAgentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import { authService } from "./services/authService";
 
 // Pages
@@ -84,6 +85,7 @@ function App() {
         <Route path="/support-dashboard" element={<ProtectedRoute><SupportAgentDashboard /></ProtectedRoute>} />
 
         {/* ADMIN */}
+        <Route path="/admin-login" element={<AdminLoginPage />} />
         <Route path="/admin-dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}

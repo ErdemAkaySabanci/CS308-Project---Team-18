@@ -275,3 +275,300 @@ class AdminOrderUpdateView(APIView):
             return Response({'message': 'Order status updated'})
         except Order.DoesNotExist:
             return Response({'error': 'Order not found'}, status=404)
+
+
+# ---------------------------------------------------------
+# CATEGORY ADMIN API
+# ---------------------------------------------------------
+class AdminCategoryListView(APIView):
+    """List and Create Categories"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        categories = Category.objects.all().order_by('name')
+        data = []
+        for c in categories:
+            data.append({
+                'id': c.id,
+                'name': c.name,
+                'description': c.description or '',
+                'product_count': c.products.count(),
+                'created_at': c.created_at
+            })
+        return Response(data)
+
+    def post(self, request):
+        """Create a new category"""
+        name = request.data.get('name', '').strip()
+        description = request.data.get('description', '').strip()
+        
+        if not name:
+            return Response({'error': 'Category name is required'}, status=400)
+        
+        if Category.objects.filter(name__iexact=name).exists():
+            return Response({'error': 'Category already exists'}, status=400)
+        
+        category = Category.objects.create(name=name, description=description)
+        return Response({
+            'id': category.id,
+            'name': category.name,
+            'message': 'Category created successfully'
+        }, status=201)
+
+
+class AdminCategoryUpdateView(APIView):
+    """Update or Delete Category"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def put(self, request, pk):
+        try:
+            category = Category.objects.get(pk=pk)
+            name = request.data.get('name', '').strip()
+            description = request.data.get('description', '').strip()
+            
+            if name:
+                category.name = name
+            if description is not None:
+                category.description = description
+            category.save()
+            return Response({'message': 'Category updated successfully'})
+        except Category.DoesNotExist:
+            return Response({'error': 'Category not found'}, status=404)
+
+    def delete(self, request, pk):
+        try:
+            category = Category.objects.get(pk=pk)
+            if category.products.count() > 0:
+                return Response({
+                    'error': f'Cannot delete category with {category.products.count()} products'
+                }, status=400)
+            category.delete()
+            return Response({'message': 'Category deleted successfully'})
+        except Category.DoesNotExist:
+            return Response({'error': 'Category not found'}, status=404)
+
+
+# ---------------------------------------------------------
+# REVIEW ADMIN API
+# ---------------------------------------------------------
+from reviews.models import Review
+
+class AdminReviewListView(APIView):
+    """List all reviews"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        reviews = Review.objects.all().select_related('user', 'product').order_by('-created_at')
+        
+        # Filter by approval status
+        approved = request.query_params.get('approved', '')
+        if approved:
+            reviews = reviews.filter(is_approved=approved.lower() == 'true')
+        
+        data = []
+        for r in reviews:
+            data.append({
+                'id': r.id,
+                'product_id': r.product.id,
+                'product_name': r.product.name,
+                'user_id': r.user.id,
+                'username': r.user.username,
+                'rating': r.rating,
+                'comment': r.comment,
+                'is_approved': r.is_approved,
+                'created_at': r.created_at
+            })
+        return Response(data)
+
+
+class AdminReviewUpdateView(APIView):
+    """Approve or Delete Reviews"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def put(self, request, pk):
+        """Approve/Unapprove a review"""
+        try:
+            review = Review.objects.get(pk=pk)
+            is_approved = request.data.get('is_approved')
+            if is_approved is not None:
+                review.is_approved = is_approved
+                review.save()
+            return Response({'message': 'Review updated successfully'})
+        except Review.DoesNotExist:
+            return Response({'error': 'Review not found'}, status=404)
+
+    def delete(self, request, pk):
+        try:
+            review = Review.objects.get(pk=pk)
+            review.delete()
+            return Response({'message': 'Review deleted successfully'})
+        except Review.DoesNotExist:
+            return Response({'error': 'Review not found'}, status=404)
+
+
+# ---------------------------------------------------------
+# USER CREATE API
+# ---------------------------------------------------------
+class AdminUserCreateView(APIView):
+    """Create new user"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        username = request.data.get('username', '').strip()
+        email = request.data.get('email', '').strip()
+        password = request.data.get('password', '')
+        role = request.data.get('role', 'customer')
+        
+        if not username or not email or not password:
+            return Response({'error': 'Username, email, and password are required'}, status=400)
+        
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({'error': 'Email already exists'}, status=400)
+        
+        if CustomUser.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists'}, status=400)
+        
+        user = CustomUser.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            role=role
+        )
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'message': 'User created successfully'
+        }, status=201)
+
+
+# ---------------------------------------------------------
+# REFUND REQUESTS API
+# ---------------------------------------------------------
+class AdminRefundListView(APIView):
+    """List all refund requests"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        refunds = RefundRequest.objects.all().select_related('order', 'order__user').order_by('-created_at')
+        
+        status_filter = request.query_params.get('status', '')
+        if status_filter:
+            refunds = refunds.filter(status=status_filter)
+        
+        data = []
+        for r in refunds:
+            data.append({
+                'id': r.id,
+                'order_id': r.order.id,
+                'invoice_number': r.order.invoice_number,
+                'customer': r.order.user.username,
+                'customer_email': r.order.user.email,
+                'reason': r.reason,
+                'refund_amount': float(r.refund_amount) if r.refund_amount else 0,
+                'status': r.status,
+                'created_at': r.created_at,
+                'processed_by': r.processed_by.username if r.processed_by else None
+            })
+        return Response(data)
+
+
+class AdminRefundUpdateView(APIView):
+    """Update refund request status"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def put(self, request, pk):
+        try:
+            refund = RefundRequest.objects.get(pk=pk)
+            new_status = request.data.get('status')
+            if new_status in ['approved', 'rejected']:
+                refund.status = new_status
+                refund.processed_by = request.user
+                refund.save()
+            return Response({'message': f'Refund {new_status}'})
+        except RefundRequest.DoesNotExist:
+            return Response({'error': 'Refund not found'}, status=404)
+
+
+# ---------------------------------------------------------
+# CART API
+# ---------------------------------------------------------
+from cart.models import Cart, CartItem
+
+class AdminCartListView(APIView):
+    """List all carts"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        carts = Cart.objects.all().select_related('user').prefetch_related('items__product').order_by('-id')
+        
+        data = []
+        for c in carts:
+            try:
+                items_count = c.items.count()
+                total = sum(item.product.discounted_price * item.quantity for item in c.items.all() if item.product)
+                data.append({
+                    'id': c.id,
+                    'user_id': c.user.id if c.user else None,
+                    'username': c.user.username if c.user else f'Guest ({c.session_key[:8] if c.session_key else "N/A"})',
+                    'email': c.user.email if c.user else '-',
+                    'items_count': items_count,
+                    'total': float(total),
+                    'created_at': c.created_at
+                })
+            except Exception as e:
+                continue
+        return Response(data)
+
+
+# ---------------------------------------------------------
+# WISHLIST API
+# ---------------------------------------------------------
+from users.models import WishList
+
+class AdminWishlistListView(APIView):
+    """List all wishlists"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        wishlists = WishList.objects.all().select_related('user', 'product').order_by('-id')
+        
+        data = []
+        for w in wishlists:
+            data.append({
+                'id': w.id,
+                'user_id': w.user.id,
+                'username': w.user.username,
+                'product_id': w.product.id,
+                'product_name': w.product.name,
+                'product_price': float(w.product.price) if w.product.price else 0,
+                'created_at': w.created_at if hasattr(w, 'created_at') else None
+            })
+        return Response(data)
+
+
+# ---------------------------------------------------------
+# CHAT API
+# ---------------------------------------------------------
+class AdminChatListView(APIView):
+    """List all chat conversations"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        conversations = ChatConversation.objects.all().select_related('customer', 'support_agent').order_by('-updated_at')
+        
+        data = []
+        for c in conversations:
+            try:
+                data.append({
+                    'id': c.id,
+                    'customer_id': c.customer.id if c.customer else None,
+                    'customer_name': c.customer.username if c.customer else f'Guest ({c.session_key[:8] if c.session_key else "N/A"})',
+                    'agent_name': c.support_agent.username if c.support_agent else 'Unassigned',
+                    'is_active': c.is_active,
+                    'created_at': c.created_at,
+                    'updated_at': c.updated_at
+                })
+            except Exception as e:
+                continue
+        return Response(data)
+
